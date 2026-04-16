@@ -374,8 +374,8 @@
             var maatLayer = null;
             var arvausKentta = document.getElementById("pelaajan_maa");
 
-            // Lisää taustakartta ilman tekstejä (no labels)
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+            // Lisää taustakartta ilman tekstejä (no labels), vaaleansinisellä merellä
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
                 maxZoom: 19,
                 attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
             }).addTo(kartta);
@@ -394,16 +394,7 @@
                 var onValittu = valittuMaaIso && valittuMaaIso === isoKoodi;
                 var onArvattu = arvatutMaat.includes(isoKoodi);
 
-                if (onValittu) {
-                    return {
-                        color: '#6f7682',
-                        weight: haeRajaPaksuus(1.5),
-                        opacity: 0.92,
-                        fillColor: '#a8adb6',
-                        fillOpacity: 0.42
-                    };
-                }
-
+                // Arvattu maa pysyy aina punaisena, vaikka sitä klikataan.
                 if (onArvattu) {
                     return {
                         color: '#b2202b',
@@ -414,12 +405,22 @@
                     };
                 }
 
+                if (onValittu) {
+                    return {
+                        color: '#6f7682',
+                        weight: haeRajaPaksuus(1.5),
+                        opacity: 0.92,
+                        fillColor: '#a8adb6',
+                        fillOpacity: 0.42
+                    };
+                }
+
                 return {
                     color: '#5b5f67',
                     weight: haeRajaPaksuus(0.95),
                     opacity: 0.76,
-                    fillColor: '#ffffff',
-                    fillOpacity: 0.012
+                    fillColor: '#d8dde3',
+                    fillOpacity: 0.18
                 };
             }
 
