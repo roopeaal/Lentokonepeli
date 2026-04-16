@@ -140,12 +140,36 @@
         document.addEventListener('DOMContentLoaded', function () {
             // Luo kartta
             var kartta = L.map('kartta').setView([0, 0], 2); // Aseta alkuarvo ja zoom-taso
+            var arvatutMaat = {{ arvatut_maat|default([], true)|tojson }};
 
             // Lisää taustakartta ilman tekstejä (no labels)
             L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
                 maxZoom: 19,
                 attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
             }).addTo(kartta);
+
+            function piirraMaidenRajatJaArvatutMaat() {
+                fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
+                    .then(response => response.json())
+                    .then(data => {
+                        L.geoJSON(data, {
+                            style: function (feature) {
+                                var isoKoodi = ((feature.properties || {})['ISO3166-1-Alpha-2'] || '').toUpperCase();
+                                var onArvattu = arvatutMaat.includes(isoKoodi);
+                                return {
+                                    color: onArvattu ? '#b00020' : '#4a4a4a',
+                                    weight: onArvattu ? 2.0 : 1.4,
+                                    opacity: 0.95,
+                                    fillColor: onArvattu ? '#ff3b30' : '#ffffff',
+                                    fillOpacity: onArvattu ? 0.45 : 0.02
+                                };
+                            }
+                        }).addTo(kartta);
+                    })
+                    .catch(error => {
+                        console.error('Virhe maiden rajojen latauksessa: ' + error);
+                    });
+            }
 
             // Funktio nuolen piirtämiseen kartalle
             function piirraNuoli(lat1, lon1, lat2, lon2) {
@@ -171,6 +195,8 @@
                     fillOpacity: 0.5
                 }).addTo(kartta);
             }
+
+            piirraMaidenRajatJaArvatutMaat();
 
             // Tarkista, onko etäisyys ja ilmansuunta saatavilla ja piirrä nuoli
             var etaisyys = {{ etaisyys|default('null') }};

@@ -132,6 +132,7 @@ def logout():
     response = make_response(redirect(url_for('index')))
     response.delete_cookie('username')
     response.delete_cookie('vihje_kaytetty')
+    response.delete_cookie('arvatut_maat')
 
     # Nollaa käyttäjän pistemäärä
     username = request.cookies.get('username')
@@ -337,6 +338,34 @@ def hae_maan_koordinaatit(maa):
         cursor.close()
         conn.close()
 
+def hae_maan_iso_koodi(maa):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT iso_country FROM country WHERE name = %s", (maa,))
+        tulos = cursor.fetchone()
+        if not tulos:
+            return None
+        return tulos[0]
+    finally:
+        cursor.close()
+        conn.close()
+
+def _hae_arvatut_maat_cookie():
+    arvatut_maat_raaka = request.cookies.get('arvatut_maat', '')
+    arvatut_maat = []
+    for arvo in arvatut_maat_raaka.split(','):
+        koodi = arvo.strip().upper()
+        if len(koodi) == 2 and koodi.isalpha() and koodi not in arvatut_maat:
+            arvatut_maat.append(koodi)
+    return arvatut_maat
+
+def _tallenna_arvatut_maat_cookie(response, arvatut_maat):
+    if arvatut_maat:
+        response.set_cookie('arvatut_maat', ",".join(arvatut_maat))
+    else:
+        response.delete_cookie('arvatut_maat')
+
 @app.route('/game', methods=['GET', 'POST'])
 def game():
     username = request.cookies.get('username')
@@ -346,6 +375,7 @@ def game():
     arvottu_latitude = request.cookies.get('arvottu_latitude')
     arvottu_longitude = request.cookies.get('arvottu_longitude')
     vihje_kaytetty = request.cookies.get('vihje_kaytetty') == '1'
+    arvatut_maat = _hae_arvatut_maat_cookie()
     vihje_teksti = None
 
     if vihje_kaytetty and arvottu_maa:
@@ -365,7 +395,8 @@ def game():
                 result_category=result_category,
                 points=0,
                 vihje_teksti=vihje_teksti,
-                vihje_kaytetty=vihje_kaytetty
+                vihje_kaytetty=vihje_kaytetty,
+                arvatut_maat=arvatut_maat
             ))
         arvottu_maa = arvottu_tieto[0]
         arvottu_latitude = str(arvottu_tieto[2])
@@ -377,11 +408,13 @@ def game():
             'game.html',
             points=user_points,
             vihje_teksti=vihje_teksti,
-            vihje_kaytetty=vihje_kaytetty
+            vihje_kaytetty=vihje_kaytetty,
+            arvatut_maat=[]
         ))
         response.set_cookie('arvottu_maa', arvottu_maa)
         response.set_cookie('arvottu_latitude', arvottu_latitude)
         response.set_cookie('arvottu_longitude', arvottu_longitude)
+        response.delete_cookie('arvatut_maat')
         return response
 
     user_points = hae_kayttajan_pisteet(username)  # Hae käyttäjän pistemäärä
@@ -398,6 +431,11 @@ def game():
             if tarkista_maa_tietokannasta(pelaajan_maa):
                 pelaajan_maa_koord = hae_maan_koordinaatit(pelaajan_maa)
                 pelaajan_maa_koord = tuple(map(float, pelaajan_maa_koord))  # Muuta merkkijonoista liukuluvuiksi
+                maan_iso_koodi = hae_maan_iso_koodi(pelaajan_maa)
+                if maan_iso_koodi:
+                    maan_iso_koodi = maan_iso_koodi.upper()
+                    if maan_iso_koodi not in arvatut_maat:
+                        arvatut_maat.append(maan_iso_koodi)
                 arvottu_latitude = float(arvottu_latitude)  # Muuta merkkijono liukuluvaksi
                 arvottu_longitude = float(arvottu_longitude)  # Muuta merkkijono liukuluvaksi
                 etaisyys, ilmansuunta = laske_etaisyys_ja_ilmansuunta(pelaajan_maa_koord,
@@ -422,7 +460,9 @@ def game():
                 response = make_response(
                     render_template('game.html', result=tulos, result_category=result_category, points=user_points,
                                     pisteet=pisteet, pelaajan_maa_koord=pelaajan_maa_koord,
-                                    vihje_teksti=vihje_teksti, vihje_kaytetty=vihje_kaytetty))
+                                    vihje_teksti=vihje_teksti, vihje_kaytetty=vihje_kaytetty,
+                                    arvatut_maat=arvatut_maat))
+                _tallenna_arvatut_maat_cookie(response, arvatut_maat)
                 return response
             else:
                 ehdotus = hae_lahin_maaehdotus(pelaajan_maa)
@@ -442,7 +482,8 @@ def game():
         result_category=result_category,
         points=user_points,
         vihje_teksti=vihje_teksti,
-        vihje_kaytetty=vihje_kaytetty
+        vihje_kaytetty=vihje_kaytetty,
+        arvatut_maat=arvatut_maat
     ))
     return response
 
@@ -486,6 +527,7 @@ def start_new_game():
             response.delete_cookie('arvottu_latitude')
             response.delete_cookie('arvottu_longitude')
             response.delete_cookie('vihje_kaytetty')
+            response.delete_cookie('arvatut_maat')
             return response
         else:
             response = jsonify({'success': False})
@@ -546,6 +588,7 @@ def new_game():
             response.delete_cookie('arvottu_latitude')
             response.delete_cookie('arvottu_longitude')
             response.delete_cookie('vihje_kaytetty')
+            response.delete_cookie('arvatut_maat')
             return response
         else:
             response = jsonify({'success': False})
