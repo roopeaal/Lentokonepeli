@@ -47,3 +47,8 @@ Tama repo sisaltaa valmiin `render.yaml`-tiedoston.
 ## Tarkeaa
 
 GitHub Pages ei pysty ajamaan Flask- tai MySQL-sovellusta. Se toimii vain staattisille sivuille.
+
+## Taustakuva
+
+Sovelluksen antiikkikartta-taustakuva on public domain -kuva Wikimedia Commonsista:
+- https://commons.wikimedia.org/wiki/File:Antique_World_Map_of_Continents_and_Oceans_1700.png
