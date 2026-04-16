@@ -246,6 +246,13 @@ def tarkista_maa_tietokannasta(maa):
 def _normalisoi_maa_syote(teksti):
     return "".join(char for char in (teksti or "").lower().strip() if char.isalnum())
 
+def _ehdotuksen_minimiraja(pituus):
+    if pituus <= 4:
+        return 0.85
+    if pituus <= 7:
+        return 0.75
+    return 0.70
+
 def hae_lahin_maaehdotus(maa):
     syote = (maa or "").strip()
     if not syote or not any(char.isalpha() for char in syote):
@@ -264,7 +271,9 @@ def hae_lahin_maaehdotus(maa):
         return None
 
     syote_normalisoitu = _normalisoi_maa_syote(syote)
-    maat_map = {maa_nimi.lower(): maa_nimi for maa_nimi in maat}
+    if len(syote_normalisoitu) < 2:
+        return None
+
     maat_normalisoitu_map = {_normalisoi_maa_syote(maa_nimi): maa_nimi for maa_nimi in maat}
 
     alias_osuma = YLEISET_MAA_ALIAKSET.get(syote_normalisoitu)
@@ -276,20 +285,25 @@ def hae_lahin_maaehdotus(maa):
     if syote_normalisoitu in maat_normalisoitu_map:
         return maat_normalisoitu_map[syote_normalisoitu]
 
-    osumat = difflib.get_close_matches(syote.lower(), list(maat_map.keys()), n=1, cutoff=0.75)
-    if osumat:
-        return maat_map[osumat[0]]
+    pisteet = []
+    for maa_normalisoitu in maat_normalisoitu_map:
+        samankaltaisuus = difflib.SequenceMatcher(None, syote_normalisoitu, maa_normalisoitu).ratio()
+        pisteet.append((maa_normalisoitu, samankaltaisuus))
 
-    osumat_normalisoitu = difflib.get_close_matches(
-        syote_normalisoitu,
-        list(maat_normalisoitu_map.keys()),
-        n=1,
-        cutoff=0.82
-    )
-    if not osumat_normalisoitu:
+    pisteet.sort(key=lambda osuma: osuma[1], reverse=True)
+    if not pisteet:
         return None
 
-    return maat_normalisoitu_map[osumat_normalisoitu[0]]
+    paras_maa, paras_piste = pisteet[0]
+    toiseksi_paras_piste = pisteet[1][1] if len(pisteet) > 1 else 0.0
+    minimiraja = _ehdotuksen_minimiraja(len(syote_normalisoitu))
+
+    if paras_piste < minimiraja:
+        return None
+    if len(pisteet) > 1 and (paras_piste - toiseksi_paras_piste) < 0.08:
+        return None
+
+    return maat_normalisoitu_map[paras_maa]
 
 def hae_maan_koordinaatit(maa):
     conn = get_db_connection()
