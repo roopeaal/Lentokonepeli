@@ -444,6 +444,11 @@
             // Luo kartta
             var kartta = L.map('kartta').setView([0, 0], 2); // Aseta alkuarvo ja zoom-taso
             var arvatutMaat = {{ arvatut_maat|default([], true)|tojson }};
+            var sallitutMaat = new Set(
+                ({{ sallitut_iso_koodit|default([], true)|tojson }} || []).map(function (koodi) {
+                    return String(koodi || '').toUpperCase();
+                })
+            );
             var oikeaMaaIso = "{{ oikea_maa_iso|default('', true) }}".toUpperCase();
             var valittuMaaIso = null;
             var maatLayer = null;
@@ -484,9 +489,20 @@
             function haeMaanTyyli(feature) {
                 var props = feature.properties || {};
                 var isoKoodi = (props['ISO3166-1-Alpha-2'] || '').toUpperCase();
+                var onSallittu = sallitutMaat.has(isoKoodi);
                 var onValittu = valittuMaaIso && valittuMaaIso === isoKoodi;
                 var onArvattu = arvatutMaat.includes(isoKoodi);
                 var onOikea = oikeaMaaIso && oikeaMaaIso === isoKoodi;
+
+                if (!onSallittu) {
+                    return {
+                        color: '#6f7378',
+                        weight: haeRajaPaksuus(0.85),
+                        opacity: 0.55,
+                        fillColor: '#cfd3d8',
+                        fillOpacity: 0.12
+                    };
+                }
 
                 // Oikein arvattu maa näytetään vihreänä.
                 if (onArvattu && onOikea) {
@@ -542,8 +558,12 @@
                         maatLayer = L.geoJSON(data, {
                             style: haeMaanTyyli,
                             onEachFeature: function (feature, layer) {
+                                var props = feature.properties || {};
+                                var isoKoodi = (props['ISO3166-1-Alpha-2'] || '').toUpperCase();
+                                if (!sallitutMaat.has(isoKoodi)) {
+                                    return;
+                                }
                                 layer.on('click', function () {
-                                    var props = feature.properties || {};
                                     valittuMaaIso = (props['ISO3166-1-Alpha-2'] || '').toUpperCase() || null;
                                     var maanNimi = (props.name || '').trim();
                                     if (maanNimi && arvausKentta) {

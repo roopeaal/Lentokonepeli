@@ -352,6 +352,23 @@ def hae_maan_iso_koodi(maa):
         cursor.close()
         conn.close()
 
+def hae_sallitut_iso_koodit():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT iso_country FROM country")
+        koodit = []
+        for row in cursor.fetchall():
+            if not row:
+                continue
+            koodi = (row[0] or "").strip().upper()
+            if len(koodi) == 2 and koodi.isalpha():
+                koodit.append(koodi)
+        return sorted(set(koodit))
+    finally:
+        cursor.close()
+        conn.close()
+
 def _hae_arvatut_maat_cookie():
     arvatut_maat_raaka = request.cookies.get('arvatut_maat', '')
     arvatut_maat = []
@@ -373,6 +390,7 @@ def game():
     if not username:
         return redirect(url_for('index'))
     _varmista_pelaaja(username)
+    sallitut_iso_koodit = hae_sallitut_iso_koodit()
 
     # Tarkistetaan, onko arvottu maa ja koordinaatit jo tallennettu evästeisiin
     arvottu_maa = request.cookies.get('arvottu_maa')
@@ -404,6 +422,7 @@ def game():
                 vihje_teksti=vihje_teksti,
                 vihje_kaytetty=vihje_kaytetty,
                 arvatut_maat=arvatut_maat,
+                sallitut_iso_koodit=sallitut_iso_koodit,
                 oikea_maa_iso=oikea_maa_iso,
                 oikea_osuma=False
             ))
@@ -419,6 +438,7 @@ def game():
             vihje_teksti=vihje_teksti,
             vihje_kaytetty=vihje_kaytetty,
             arvatut_maat=[],
+            sallitut_iso_koodit=sallitut_iso_koodit,
             oikea_maa_iso=None,
             oikea_osuma=False
         ))
@@ -476,7 +496,8 @@ def game():
                     render_template('game.html', result=tulos, result_category=result_category, points=user_points,
                                     pisteet=pisteet, pelaajan_maa_koord=pelaajan_maa_koord,
                                     vihje_teksti=vihje_teksti, vihje_kaytetty=vihje_kaytetty,
-                                    arvatut_maat=arvatut_maat, oikea_maa_iso=oikea_maa_iso,
+                                    arvatut_maat=arvatut_maat, sallitut_iso_koodit=sallitut_iso_koodit,
+                                    oikea_maa_iso=oikea_maa_iso,
                                     oikea_osuma=oikea_osuma))
                 _tallenna_arvatut_maat_cookie(response, arvatut_maat)
                 if oikea_osuma and oikea_maa_iso:
@@ -502,6 +523,7 @@ def game():
         vihje_teksti=vihje_teksti,
         vihje_kaytetty=vihje_kaytetty,
         arvatut_maat=arvatut_maat,
+        sallitut_iso_koodit=sallitut_iso_koodit,
         oikea_maa_iso=oikea_maa_iso,
         oikea_osuma=oikea_osuma
     ))
