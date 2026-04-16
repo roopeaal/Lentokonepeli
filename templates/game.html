@@ -162,12 +162,27 @@
                 }).addTo(kartta);
             }
 
+            // Function to add a large red dot on the map
+            function lisaaPunainenPiste(lat, lon) {
+                var redDot = L.circleMarker([lat, lon], {
+                    radius: 10,
+                    color: 'red',
+                    fillColor: '#f03',
+                    fillOpacity: 0.5
+                }).addTo(kartta);
+            }
+
             // Tarkista, onko etäisyys ja ilmansuunta saatavilla ja piirrä nuoli
             var etaisyys = {{ etaisyys|default('null') }};
             var ilmansuunta = "{{ ilmansuunta|default('') }}";
             if (etaisyys !== null && ilmansuunta !== "") {
                 piirraNuoli(0, 0, etaisyys, ilmansuunta);
             }
+
+            // Add red dot if guessed coordinates are available
+            {% if pelaajan_maa_koord %}
+                lisaaPunainenPiste({{ pelaajan_maa_koord[0] }}, {{ pelaajan_maa_koord[1] }});
+            {% endif %}
 
             // Function to display the largest airport name
             function naytaLentokenttaNimi() {

@@ -1,19 +1,21 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, make_response, jsonify
 from geopy.distance import geodesic
 import math
+import os
 import random
 import mysql.connector
 
 app = Flask(__name__)
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'change-me-in-production')
 
 # Tietokantayhteyden avausfunktio
 def get_db_connection():
     conn = mysql.connector.connect(
-        host='127.0.0.1',
-        port=3306,
-        database='lentopeli',
-        user='root',
-        password='juhannus',
+        host=os.getenv('DB_HOST', '127.0.0.1'),
+        port=int(os.getenv('DB_PORT', '3306')),
+        database=os.getenv('DB_NAME', 'lentopeli'),
+        user=os.getenv('DB_USER', 'root'),
+        password=os.getenv('DB_PASSWORD', ''),
         autocommit=True
     )
     return conn
@@ -259,6 +261,7 @@ def game():
     result_category = None
     etaisyys = None
     ilmansuunta = None
+    pelaajan_maa_koord = None
 
     if request.method == 'POST':
         pelaajan_maa = request.form.get('pelaajan_maa')
@@ -289,7 +292,7 @@ def game():
                 # Tallenna pisteet evästeisiin
                 response = make_response(
                     render_template('game.html', result=tulos, result_category=result_category, points=user_points,
-                                    pisteet=pisteet))
+                                    pisteet=pisteet, pelaajan_maa_koord=pelaajan_maa_koord))
                 return response
             else:
                 tulos = "Maa on kirjoitettu väärin tai sitä ei ole olemassa."
@@ -301,6 +304,7 @@ def game():
     user_points = hae_kayttajan_pisteet(username)
     response = make_response(render_template('game.html', result=tulos, result_category=result_category, points=user_points))
     return response
+
 
 
 
@@ -427,5 +431,4 @@ def paivita_hiscore(username, points):
 
 
 if __name__ == '__main__':
-    app.secret_key = 'supersecretkey'
     app.run(debug=True)
