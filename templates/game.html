@@ -452,6 +452,7 @@
             // Luo kartta
             var kartta = L.map('kartta').setView([0, 0], 2); // Aseta alkuarvo ja zoom-taso
             var arvatutMaat = {{ arvatut_maat|default([], true)|tojson }};
+            var isoMaaNimiMap = {{ iso_maa_nimi_map|default({}, true)|tojson }};
             var maaNimiMap = {{ maa_nimi_map|default({}, true)|tojson }};
             var karttaAliasit = {{ kartta_aliasit|default({}, true)|tojson }};
             var sallitutMaat = new Set(
@@ -584,8 +585,11 @@
                                 layer.on('click', function () {
                                     valittuMaaIso = (props['ISO3166-1-Alpha-2'] || '').toUpperCase() || null;
                                     var maanNimi = (props.name || '').trim();
+                                    var korjattuNimi = isoMaaNimiMap[valittuMaaIso] || null;
                                     var normalisoituNimi = normalisoiMaaSyote(maanNimi);
-                                    var korjattuNimi = maaNimiMap[normalisoituNimi] || null;
+                                    if (!korjattuNimi) {
+                                        korjattuNimi = maaNimiMap[normalisoituNimi] || null;
+                                    }
                                     if (!korjattuNimi) {
                                         var aliasKohde = karttaAliasit[normalisoituNimi];
                                         if (aliasKohde) {

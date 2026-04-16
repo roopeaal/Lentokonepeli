@@ -375,6 +375,24 @@ def hae_sallitut_iso_koodit():
         cursor.close()
         conn.close()
 
+def hae_iso_maa_nimi_map():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT iso_country, name FROM country")
+        iso_map = {}
+        for row in cursor.fetchall():
+            if not row:
+                continue
+            iso_koodi = (row[0] or "").strip().upper()
+            nimi = (row[1] or "").strip()
+            if len(iso_koodi) == 2 and iso_koodi.isalpha() and nimi:
+                iso_map[iso_koodi] = nimi
+        return iso_map
+    finally:
+        cursor.close()
+        conn.close()
+
 def hae_normalisoitu_maa_nimi_map():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -426,6 +444,7 @@ def game():
         return redirect(url_for('index'))
     _varmista_pelaaja(username)
     sallitut_iso_koodit = hae_sallitut_iso_koodit()
+    iso_maa_nimi_map = hae_iso_maa_nimi_map()
     maa_nimi_map = hae_normalisoitu_maa_nimi_map()
     kartta_aliasit = hae_kartta_aliasit()
 
@@ -461,6 +480,7 @@ def game():
                 vihje_kaytetty=vihje_kaytetty,
                 arvatut_maat=arvatut_maat,
                 sallitut_iso_koodit=sallitut_iso_koodit,
+                iso_maa_nimi_map=iso_maa_nimi_map,
                 maa_nimi_map=maa_nimi_map,
                 kartta_aliasit=kartta_aliasit,
                 kierros_voitettu=False,
@@ -480,6 +500,7 @@ def game():
             vihje_kaytetty=vihje_kaytetty,
             arvatut_maat=[],
             sallitut_iso_koodit=sallitut_iso_koodit,
+            iso_maa_nimi_map=iso_maa_nimi_map,
             maa_nimi_map=maa_nimi_map,
             kartta_aliasit=kartta_aliasit,
             kierros_voitettu=False,
@@ -548,6 +569,7 @@ def game():
                                     pisteet=pisteet, pelaajan_maa_koord=pelaajan_maa_koord,
                                     vihje_teksti=vihje_teksti, vihje_kaytetty=vihje_kaytetty,
                                     arvatut_maat=arvatut_maat, sallitut_iso_koodit=sallitut_iso_koodit,
+                                    iso_maa_nimi_map=iso_maa_nimi_map,
                                     maa_nimi_map=maa_nimi_map, kartta_aliasit=kartta_aliasit,
                                     kierros_voitettu=kierros_voitettu,
                                     oikea_maa_iso=oikea_maa_iso,
@@ -577,6 +599,7 @@ def game():
         vihje_kaytetty=vihje_kaytetty,
         arvatut_maat=arvatut_maat,
         sallitut_iso_koodit=sallitut_iso_koodit,
+        iso_maa_nimi_map=iso_maa_nimi_map,
         maa_nimi_map=maa_nimi_map,
         kartta_aliasit=kartta_aliasit,
         kierros_voitettu=kierros_voitettu,
