@@ -672,16 +672,19 @@ def leaderboard():
 
 @app.route('/highscores')
 def highscores():
-    highscore_list = execute_query("SELECT username, IFNULL(hiscore, 0) as hiscore FROM game ORDER BY hiscore DESC LIMIT 10;")
-    return render_template('highscores.html', highscores=highscore_list)
+    return redirect(url_for('leaderboard'))
 
 @app.route('/update_correct_answer', methods=['GET'])
 def update_correct_answer():
+    username = request.cookies.get('username')
+    if not username:
+        return jsonify({'success': False, 'message': 'Käyttäjää ei löytynyt.'}), 401
+
     new_correct_country = arvo_uusi_maa_ja_kentta()  # Arvotaan uusi oikea maa
     if new_correct_country:
         # Tallennetaan uusi oikea maa tietokantaan
-        query = "UPDATE game SET kierroksen_Maa = %s"
-        execute_query(query, (new_correct_country[0],))
+        query = "UPDATE game SET kierroksen_Maa = %s WHERE username = %s"
+        execute_query(query, (new_correct_country[0], username))
         return jsonify({'success': True, 'message': 'Uusi oikea maa päivitetty onnistuneesti.'})
     else:
         return jsonify({'success': False, 'message': 'Uuden oikean maan päivittäminen epäonnistui.'})
@@ -701,9 +704,6 @@ def new_game():
             query = "UPDATE game SET kierroksen_Maa = %s, arvottu_latitude = %s, arvottu_longitude = %s, points = 1000 WHERE username = %s"
             values = (arvottu_maa, arvottu_latitude, arvottu_longitude, username)
             execute_query(query, values)
-
-            # Nollaa käyttäjän pistemäärä
-            lisaa_pisteet(username, 1000)
 
             # Poista evästeistä oikean maan koordinaatit
             response = make_response(jsonify({'success': True, 'arvottu_maa': arvottu_maa}))
