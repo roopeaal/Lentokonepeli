@@ -26,6 +26,11 @@
             letter-spacing: 0.8px;
             line-height: 1.05;
             max-width: 56vw;
+            background: rgba(247, 236, 214, 0.9);
+            border: 1px solid rgba(113, 81, 45, 0.42);
+            border-radius: 12px;
+            box-shadow: 0 5px 14px rgba(77, 52, 28, 0.14);
+            padding: 8px 14px;
         }
 
         .otsikko-rivi {
@@ -134,14 +139,6 @@
             dominant-baseline: middle;
         }
 
-        .kompassi-selite {
-            max-width: 250px;
-            text-align: center;
-            font-size: 10px;
-            line-height: 1.2;
-            color: #26323e;
-        }
-
         @media (max-width: 700px) {
             h1 {
                 font-size: 24px;
@@ -153,11 +150,6 @@
             }
 
             .kompassi-svg { width: 190px; }
-
-            .kompassi-selite {
-                max-width: 170px;
-                font-size: 9px;
-            }
         }
 
         form {
@@ -170,6 +162,15 @@
             display: block;
             color: #495057;
             margin-bottom: 5px;
+            background: rgba(247, 236, 214, 0.9);
+            border: 1px solid rgba(113, 81, 45, 0.42);
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(77, 52, 28, 0.12);
+            width: fit-content;
+            max-width: 92%;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 6px 10px;
         }
 
         input[type="text"] {
@@ -200,6 +201,20 @@
 
         .error {
             color: red;
+        }
+
+        .tulos-teksti,
+        #lentokentta-nimi,
+        #pisteet {
+            background: rgba(247, 236, 214, 0.9);
+            border: 1px solid rgba(113, 81, 45, 0.42);
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(77, 52, 28, 0.12);
+            width: fit-content;
+            max-width: 92%;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 6px 12px;
         }
 
         a {
@@ -254,7 +269,6 @@
                 src="{{ url_for('static', filename='images/compass-logo-antique.svg') }}"
                 alt="Antiikkinen kompassi: Pohjoinen, Koillinen, Itä, Kaakko, Etelä, Lounas, Länsi, Luode"
             />
-            <p class="kompassi-selite">Ilmansuunnat ja väli-ilmansuunnat lunttia varten.</p>
         </div>
     </div>
 
@@ -266,7 +280,7 @@
 
     <!-- Näytä tulos tai virheviesti -->
     {% if result %}
-        <p class="{{ 'error' if result_category == 'danger' else '' }}">{{ result }}</p>
+        <p class="tulos-teksti {{ 'error' if result_category == 'danger' else '' }}">{{ result }}</p>
     {% endif %}
 
     <!-- Lisää kartta-div-elementti -->
