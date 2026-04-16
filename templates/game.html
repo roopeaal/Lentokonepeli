@@ -15,14 +15,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+            justify-content: flex-start;
+            min-height: 100svh;
         }
 
         .peli-paneeli {
             width: min(96vw, 1140px);
-            margin: 16px auto;
-            padding: 10px 16px 14px;
+            margin: 4px auto;
+            padding: 6px 12px 10px;
             background: rgba(247, 236, 214, 0.88);
             border: 1px solid rgba(113, 81, 45, 0.42);
             border-radius: 16px;
@@ -45,10 +45,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: min(100%, 980px);
-            gap: 12px;
+            width: min(100%, 860px);
+            gap: 8px;
             flex-wrap: nowrap;
-            margin: 0 auto 2px;
+            margin: 0 auto;
         }
 
         .kompassi-kortti {
@@ -65,8 +65,8 @@
         }
 
         .kompassi-svg {
-            width: 232px;
-            max-width: 34vw;
+            width: 196px;
+            max-width: 30vw;
             height: auto;
             display: block;
         }
@@ -151,8 +151,8 @@
         @media (max-width: 700px) {
             .peli-paneeli {
                 width: min(97vw, 1140px);
-                padding: 8px 8px 14px;
-                margin: 6px auto;
+                padding: 6px 6px 12px;
+                margin: 3px auto;
                 border-radius: 12px;
             }
 
@@ -166,14 +166,14 @@
             }
 
             .kompassi-svg {
-                width: 156px;
-                max-width: 38vw;
+                width: 134px;
+                max-width: 36vw;
             }
         }
 
         form {
             text-align: center;
-            margin-top: 6px;
+            margin-top: 2px;
         }
 
         .arvaus-rivi {
@@ -188,7 +188,7 @@
             font-weight: bold;
             display: block;
             color: #495057;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
             width: fit-content;
             max-width: 92%;
             margin-left: auto;
@@ -214,7 +214,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            margin-top: 8px;
+            margin-top: 6px;
         }
 
         input[type="submit"]:hover {
@@ -254,7 +254,7 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 12px;
-            margin-top: 14px;
+            margin-top: 8px;
         }
 
         .toiminto-rivi a {
@@ -267,11 +267,10 @@
         }
 
         #kartta {
-            height: min(43vh, 330px);
-            min-height: 250px;
+            height: clamp(220px, 38vh, 290px);
             width: min(100%, 980px);
             max-width: 980px;
-            margin: 12px auto 8px;
+            margin: 8px auto 6px;
             border: 2px solid rgba(93, 64, 34, 0.56);
             box-shadow:
                 inset 0 0 0 1px rgba(177, 138, 89, 0.55),
@@ -344,6 +343,7 @@
             // Luo kartta
             var kartta = L.map('kartta').setView([0, 0], 2); // Aseta alkuarvo ja zoom-taso
             var arvatutMaat = {{ arvatut_maat|default([], true)|tojson }};
+            var oikeaMaaIso = "{{ oikea_maa_iso|default('', true) }}".toUpperCase();
             var valittuMaaIso = null;
             var maatLayer = null;
             var arvausKentta = document.getElementById("pelaajan_maa");
@@ -367,6 +367,18 @@
                 var isoKoodi = (props['ISO3166-1-Alpha-2'] || '').toUpperCase();
                 var onValittu = valittuMaaIso && valittuMaaIso === isoKoodi;
                 var onArvattu = arvatutMaat.includes(isoKoodi);
+                var onOikea = oikeaMaaIso && oikeaMaaIso === isoKoodi;
+
+                // Oikein arvattu maa näytetään vihreänä.
+                if (onArvattu && onOikea) {
+                    return {
+                        color: '#18723b',
+                        weight: haeRajaPaksuus(1.45),
+                        opacity: 0.9,
+                        fillColor: '#2ecc71',
+                        fillOpacity: 0.32
+                    };
+                }
 
                 // Arvattu maa pysyy aina punaisena, vaikka sitä klikataan.
                 if (onArvattu) {
@@ -456,6 +468,16 @@
                 }).addTo(kartta);
             }
 
+            // Function to add a large green dot on the map
+            function lisaaVihreaPiste(lat, lon) {
+                var greenDot = L.circleMarker([lat, lon], {
+                    radius: 10,
+                    color: '#0f6b36',
+                    fillColor: '#2ecc71',
+                    fillOpacity: 0.55
+                }).addTo(kartta);
+            }
+
             piirraMaidenRajatJaArvatutMaat();
 
             // Tarkista, onko etäisyys ja ilmansuunta saatavilla ja piirrä nuoli
@@ -467,7 +489,11 @@
 
             // Add red dot if guessed coordinates are available
             {% if pelaajan_maa_koord %}
-                lisaaPunainenPiste({{ pelaajan_maa_koord[0] }}, {{ pelaajan_maa_koord[1] }});
+                {% if oikea_osuma %}
+                    lisaaVihreaPiste({{ pelaajan_maa_koord[0] }}, {{ pelaajan_maa_koord[1] }});
+                {% else %}
+                    lisaaPunainenPiste({{ pelaajan_maa_koord[0] }}, {{ pelaajan_maa_koord[1] }});
+                {% endif %}
             {% endif %}
 
             // Function to display the largest airport name
