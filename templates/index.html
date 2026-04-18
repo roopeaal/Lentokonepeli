@@ -39,9 +39,11 @@
 
         .lore {
             position: relative;
-            max-width: 720px;
+            max-width: 740px;
             margin: 14px auto 8px;
-            padding: clamp(26px, 4.6vw, 42px) clamp(56px, 9.5vw, 96px);
+            width: min(100%, 740px);
+            aspect-ratio: 740 / 456;
+            padding: clamp(52px, 8vw, 64px) clamp(108px, 15vw, 132px) clamp(46px, 7vw, 58px);
             text-align: left;
             background-image: url('{{ url_for('static', filename='images/lore-scroll-clean.png') }}');
             background-position: center;
@@ -49,40 +51,45 @@
             background-size: 100% 100%;
             border: 0;
             border-radius: 0;
-            min-height: clamp(190px, 28vw, 250px);
+            min-height: 0;
             box-shadow: none;
+            box-sizing: border-box;
         }
 
         .lore-teksti {
-            margin: 0;
-            color: #3c2a16;
-            font-family: "Palatino Linotype", "Book Antiqua", "Garamond", Georgia, serif;
-            font-size: 1.22em;
-            line-height: 1.52;
-            letter-spacing: 0.14px;
-            text-shadow: 0 1px 0 rgba(255, 246, 222, 0.34);
+            margin: 0 auto;
+            color: #2f2722;
+            font-family: "Apple Chancery", "Snell Roundhand", "Bradley Hand", "Book Antiqua", "Palatino Linotype", serif;
+            font-style: italic;
+            font-weight: 500;
+            font-size: clamp(1.08em, 1.55vw, 1.23em);
+            line-height: 1.54;
+            letter-spacing: 0.2px;
+            text-shadow: 0.3px 0.8px 0 rgba(255, 246, 222, 0.26);
+            max-width: 100%;
         }
 
         .lore-teksti::first-letter {
             float: left;
             margin: 2px 8px 0 0;
-            font-family: "Garamond", Georgia, "Times New Roman", serif;
-            font-size: 2.25em;
+            font-family: "URW Chancery L", "Apple Chancery", "Garamond", Georgia, "Times New Roman", serif;
+            font-size: 2.35em;
             line-height: 0.9;
-            color: #5a3f22;
+            color: #51361d;
             font-weight: 700;
         }
 
         @media (max-width: 700px) {
             .lore {
-                padding: 24px clamp(24px, 6vw, 40px);
+                width: min(100%, 740px);
+                aspect-ratio: auto;
+                padding: 20px 24px 18px;
                 margin-top: 12px;
-                min-height: 0;
-                background-size: cover;
+                background-size: contain;
             }
 
             .lore-teksti {
-                font-size: 1.08em;
+                font-size: 1.03em;
             }
         }
 
