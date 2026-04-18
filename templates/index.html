@@ -40,62 +40,34 @@
         .lore {
             position: relative;
             max-width: 720px;
-            margin: 16px auto 8px;
-            padding: 20px 26px;
+            margin: 14px auto 8px;
+            padding: clamp(26px, 4.6vw, 42px) clamp(56px, 9.5vw, 96px);
             text-align: left;
-            background:
-                radial-gradient(circle at 18% 12%, rgba(255, 249, 233, 0.72), rgba(255, 249, 233, 0) 38%),
-                radial-gradient(circle at 80% 86%, rgba(193, 151, 92, 0.2), rgba(193, 151, 92, 0) 44%),
-                linear-gradient(180deg, rgba(245, 230, 196, 0.97) 0%, rgba(233, 209, 165, 0.95) 100%);
-            border: 1px solid rgba(116, 81, 42, 0.52);
-            border-radius: 24px;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 246, 220, 0.72),
-                inset 0 -1px 0 rgba(139, 102, 58, 0.28),
-                inset 0 0 28px rgba(101, 71, 38, 0.14),
-                0 9px 18px rgba(73, 48, 24, 0.18);
-        }
-
-        .lore::before,
-        .lore::after {
-            content: "";
-            position: absolute;
-            top: 18px;
-            bottom: 18px;
-            width: 18px;
-            border-radius: 10px;
-            pointer-events: none;
-        }
-
-        .lore::before {
-            left: -10px;
-            background: linear-gradient(90deg, rgba(143, 104, 59, 0.42), rgba(255, 241, 205, 0.72));
-            box-shadow:
-                inset -2px 0 3px rgba(95, 65, 34, 0.24),
-                2px 0 6px rgba(83, 57, 30, 0.16);
-        }
-
-        .lore::after {
-            right: -10px;
-            background: linear-gradient(90deg, rgba(255, 241, 205, 0.72), rgba(143, 104, 59, 0.42));
-            box-shadow:
-                inset 2px 0 3px rgba(95, 65, 34, 0.24),
-                -2px 0 6px rgba(83, 57, 30, 0.16);
+            background-image: url('{{ url_for('static', filename='images/lore-scroll.avif') }}');
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+            border: 0;
+            border-radius: 0;
+            min-height: clamp(190px, 28vw, 250px);
+            box-shadow: none;
         }
 
         .lore-teksti {
             margin: 0;
-            color: #3f3121;
-            font-size: 1.17em;
-            line-height: 1.56;
-            text-shadow: 0 1px 0 rgba(255, 247, 228, 0.42);
+            color: #3c2a16;
+            font-family: "Palatino Linotype", "Book Antiqua", "Garamond", Georgia, serif;
+            font-size: 1.22em;
+            line-height: 1.52;
+            letter-spacing: 0.14px;
+            text-shadow: 0 1px 0 rgba(255, 246, 222, 0.34);
         }
 
         .lore-teksti::first-letter {
             float: left;
             margin: 2px 8px 0 0;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 2.05em;
+            font-family: "Garamond", Georgia, "Times New Roman", serif;
+            font-size: 2.25em;
             line-height: 0.9;
             color: #5a3f22;
             font-weight: 700;
@@ -103,20 +75,14 @@
 
         @media (max-width: 700px) {
             .lore {
-                padding: 14px 14px 12px;
+                padding: 24px clamp(24px, 6vw, 40px);
                 margin-top: 12px;
-                border-radius: 16px;
-            }
-
-            .lore::before,
-            .lore::after {
-                width: 10px;
-                top: 12px;
-                bottom: 12px;
+                min-height: 0;
+                background-size: cover;
             }
 
             .lore-teksti {
-                font-size: 1.05em;
+                font-size: 1.08em;
             }
         }
 
