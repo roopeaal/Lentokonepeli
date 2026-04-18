@@ -38,15 +38,80 @@
         }
 
         .lore {
+            position: relative;
             max-width: 720px;
-            margin: 14px auto 6px;
-            padding: 12px 14px;
+            margin: 16px auto 8px;
+            padding: 18px 22px 16px;
             text-align: left;
-            line-height: 1.45;
-            background: rgba(247, 236, 214, 0.92);
-            border: 1px solid rgba(113, 81, 45, 0.4);
-            border-radius: 10px;
-            box-shadow: 0 5px 14px rgba(77, 52, 28, 0.12);
+            background:
+                linear-gradient(180deg, rgba(250, 241, 223, 0.95) 0%, rgba(241, 226, 196, 0.94) 100%);
+            border: 1px solid rgba(119, 86, 47, 0.5);
+            border-radius: 12px;
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 247, 230, 0.56),
+                inset 0 0 24px rgba(101, 71, 38, 0.09),
+                0 8px 18px rgba(73, 48, 24, 0.16);
+        }
+
+        .lore::before,
+        .lore::after {
+            content: "";
+            position: absolute;
+            left: 16px;
+            right: 16px;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(109, 76, 41, 0), rgba(109, 76, 41, 0.5), rgba(109, 76, 41, 0));
+        }
+
+        .lore::before {
+            top: 10px;
+        }
+
+        .lore::after {
+            bottom: 10px;
+        }
+
+        .lore-otsikko {
+            margin: 0 0 8px;
+            text-align: center;
+            color: #5a3f22;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 1.06em;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+        }
+
+        .lore-teksti {
+            margin: 0;
+            color: #3f3121;
+            font-size: 1.18em;
+            line-height: 1.52;
+        }
+
+        .lore-teksti::first-letter {
+            float: left;
+            margin: 2px 8px 0 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 2.05em;
+            line-height: 0.9;
+            color: #5a3f22;
+            font-weight: 700;
+        }
+
+        @media (max-width: 700px) {
+            .lore {
+                padding: 14px 14px 12px;
+                margin-top: 12px;
+            }
+
+            .lore-otsikko {
+                font-size: 0.98em;
+            }
+
+            .lore-teksti {
+                font-size: 1.05em;
+            }
         }
 
         form {
@@ -95,7 +160,10 @@
 <body>
     <div class="container">
         <h1>Kristoffer Kolumbuksen jäljillä – maanarvauspeli</h1>
-        <p class="lore">Kristoffer Kolumbus tunnetaan suurista tutkimusretkistään, mutta nyt hän on itse mennyt piiloon. Sinun tehtäväsi on löytää hänet arvaamalla mihin maahan hän on mennyt. Jokaisen arvauksen jälkeen hän kertoo vain etäisyyden ja ilmansuunnan. Onnistutko pääsemään hänen jäljilleen?</p>
+        <section class="lore" aria-label="Prologi">
+            <h2 class="lore-otsikko">Prologi</h2>
+            <p class="lore-teksti">Kristoffer Kolumbus tunnetaan suurista tutkimusretkistään, mutta nyt hän on itse mennyt piiloon. Sinun tehtäväsi on löytää hänet arvaamalla, mihin maahan hän on mennyt. Jokaisen arvauksen jälkeen hän kertoo vain etäisyyden ja ilmansuunnan. Onnistutko pääsemään hänen jäljilleen?</p>
+        </section>
 
         {% with messages = get_flashed_messages() %}
           {% if messages %}
