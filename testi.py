@@ -5,6 +5,7 @@ import math
 import os
 import random
 import mysql.connector
+from urllib.parse import urlparse, unquote
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'change-me-in-production')
@@ -32,14 +33,56 @@ VIHJE_HINTA = 300
 
 # Tietokantayhteyden avausfunktio
 def get_db_connection():
-    conn = mysql.connector.connect(
-        host=os.getenv('DB_HOST', '127.0.0.1'),
-        port=int(os.getenv('DB_PORT', '3306')),
-        database=os.getenv('DB_NAME', 'lentopeli'),
-        user=os.getenv('DB_USER', 'root'),
-        password=os.getenv('DB_PASSWORD', ''),
-        autocommit=True
-    )
+    db_url = os.getenv('DB_URL') or os.getenv('DATABASE_URL') or os.getenv('DB_URI')
+    parsed = urlparse(db_url) if db_url else None
+
+    host = (os.getenv('DB_HOST') or (parsed.hostname if parsed else '') or '127.0.0.1').strip()
+    port_raw = (os.getenv('DB_PORT') or (str(parsed.port) if parsed and parsed.port else '') or '3306').strip()
+    database = (os.getenv('DB_NAME') or (parsed.path.lstrip('/') if parsed and parsed.path else '') or 'lentopeli').strip()
+    user = (os.getenv('DB_USER') or (unquote(parsed.username) if parsed and parsed.username else '') or 'root').strip()
+    password = os.getenv('DB_PASSWORD')
+    if password is None:
+        password = unquote(parsed.password) if parsed and parsed.password else ''
+
+    # Tue myös muotoa "host:port" DB_HOST-arvossa.
+    if ":" in host and host.rsplit(":", 1)[1].isdigit():
+        host, host_port = host.rsplit(":", 1)
+        if not os.getenv('DB_PORT'):
+            port_raw = host_port
+
+    # Jos DB_NAME:ksi on vahingossa annettu portti, käytä sitä porttina.
+    if database.isdigit() and (not os.getenv('DB_PORT') or port_raw == '3306'):
+        port_raw = database
+        database = os.getenv('DB_DATABASE', 'defaultdb')
+
+    try:
+        port = int(port_raw)
+    except ValueError:
+        port = 3306
+
+    conn_kwargs = {
+        'host': host,
+        'port': port,
+        'database': database,
+        'user': user,
+        'password': password,
+        'autocommit': True,
+        'connection_timeout': 10,
+    }
+
+    ssl_mode = (os.getenv('DB_SSL_MODE') or '').strip().upper()
+    if not ssl_mode and host.endswith('aivencloud.com'):
+        ssl_mode = 'REQUIRED'
+
+    if ssl_mode not in ('', 'DISABLED', 'OFF', 'FALSE', '0'):
+        conn_kwargs['ssl_disabled'] = False
+        ssl_ca_path = (os.getenv('DB_SSL_CA_PATH') or os.getenv('DB_SSL_CA') or '').strip()
+        if ssl_ca_path and os.path.exists(ssl_ca_path):
+            conn_kwargs['ssl_ca'] = ssl_ca_path
+    elif ssl_mode in ('DISABLED', 'OFF', 'FALSE', '0'):
+        conn_kwargs['ssl_disabled'] = True
+
+    conn = mysql.connector.connect(**conn_kwargs)
     return conn
 
 # Tietokantayhteyden avaaminen ja sulkeminen tietokantakäsittelyissä
@@ -70,7 +113,7 @@ def _varmista_pelaaja(username):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT id FROM game WHERE username = %s", (username,))
+        cursor.execute("SELECT 1 FROM game WHERE username = %s", (username,))
         loytyi = cursor.fetchone()
         if not loytyi:
             _lisaa_uusi_pelaaja_yhteensopivasti(cursor, conn, username)
@@ -217,9 +260,24 @@ def set_name():
     try:
         _varmista_pelaaja(username)
         lisaa_pisteet(username, 1000)
-    except Exception:
+    except Exception as e:
         app.logger.exception("Nimen asetus epäonnistui /set_name-reitillä.")
-        flash('Pelin aloitus epäonnistui palvelimella. Yritä hetken päästä uudelleen.', 'danger')
+        virhe = str(e)
+        db_host = os.getenv('DB_HOST', '')
+        db_port = os.getenv('DB_PORT', '')
+        if (
+            'aivencloud.com' in db_host
+            and (db_port in ('', '3306'))
+        ):
+            flash(
+                'Pelin aloitus epäonnistui: tietokannan portti näyttää väärältä. '
+                'Aseta Renderiin DB_PORT = Aivenin portti (esim. 13734).',
+                'danger'
+            )
+        elif virhe:
+            flash(f'Pelin aloitus epäonnistui: {virhe}', 'danger')
+        else:
+            flash('Pelin aloitus epäonnistui palvelimella. Yritä hetken päästä uudelleen.', 'danger')
         return redirect(url_for('index'))
 
     response = make_response(redirect(url_for('game')))
