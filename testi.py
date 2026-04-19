@@ -79,76 +79,129 @@ def _varmista_pelaaja(username):
         conn.close()
 
 
+def _suorita_insert_yhteensopivasti(cursor, conn, yritykset):
+    viimeisin_virhe = None
+    for query, values in yritykset:
+        try:
+            cursor.execute(query, values)
+            conn.commit()
+            return
+        except mysql.connector.IntegrityError as e:
+            conn.rollback()
+            # Rinnakkaisissa pyynnöissä käyttäjä voi ehtiä syntyä toisaalla.
+            if e.errno == 1062:
+                return
+            viimeisin_virhe = e
+        except mysql.connector.Error as e:
+            conn.rollback()
+            viimeisin_virhe = e
+
+    if viimeisin_virhe:
+        raise viimeisin_virhe
+    raise RuntimeError("Pelaajan lisääminen epäonnistui ilman tarkempaa virhettä.")
+
+
 def _lisaa_uusi_pelaaja_yhteensopivasti(cursor, conn, username):
-    cursor.execute("SHOW COLUMNS FROM game")
-    sarakkeet = cursor.fetchall()
-    if not sarakkeet:
-        raise RuntimeError("game-taulun sarakkeita ei löytynyt.")
+    yritykset = []
+    dynaaminen_insert_lisatty = False
 
-    sarake_meta = {}
-    for row in sarakkeet:
-        nimi = row[0]
-        tyyppi = (row[1] or "").lower()
-        nullable = (row[2] or "").upper()
-        oletus = row[4]
-        extra = (row[5] or "").lower()
-        sarake_meta[nimi] = {
-            "type": tyyppi,
-            "null": nullable,
-            "default": oletus,
-            "extra": extra
-        }
+    try:
+        cursor.execute("SHOW COLUMNS FROM game")
+        sarakkeet = cursor.fetchall()
+        if sarakkeet:
+            sarake_meta = {}
+            for row in sarakkeet:
+                nimi = row[0]
+                tyyppi = (row[1] or "").lower()
+                nullable = (row[2] or "").upper()
+                oletus = row[4]
+                extra = (row[5] or "").lower()
+                sarake_meta[nimi] = {
+                    "type": tyyppi,
+                    "null": nullable,
+                    "default": oletus,
+                    "extra": extra
+                }
 
-    if "username" not in sarake_meta:
-        raise RuntimeError("game-taulusta puuttuu username-sarake.")
+            if "username" in sarake_meta:
+                tunnetut_oletusarvot = {
+                    "username": username,
+                    "password": "",
+                    "points": 1000,
+                    "hiscore": 0,
+                    "kierroksen_Maa": None,
+                    "arvottu_latitude": None,
+                    "arvottu_longitude": None,
+                }
 
-    tunnetut_oletusarvot = {
-        "username": username,
-        "password": "",
-        "points": 1000,
-        "hiscore": 0,
-        "kierroksen_Maa": None,
-        "arvottu_latitude": None,
-        "arvottu_longitude": None,
-    }
+                insert_sarakkeet = []
+                insert_arvot = []
 
-    insert_sarakkeet = []
-    insert_arvot = []
+                for sarake, arvo in tunnetut_oletusarvot.items():
+                    if sarake in sarake_meta:
+                        insert_sarakkeet.append(sarake)
+                        insert_arvot.append(arvo)
 
-    for sarake, arvo in tunnetut_oletusarvot.items():
-        if sarake in sarake_meta:
-            insert_sarakkeet.append(sarake)
-            insert_arvot.append(arvo)
+                for sarake, meta in sarake_meta.items():
+                    if sarake in insert_sarakkeet:
+                        continue
+                    if "auto_increment" in meta["extra"]:
+                        continue
+                    if meta["null"] == "YES":
+                        continue
+                    if meta["default"] is not None:
+                        continue
 
-    for sarake, meta in sarake_meta.items():
-        if sarake in insert_sarakkeet:
-            continue
-        if "auto_increment" in meta["extra"]:
-            continue
-        if meta["null"] == "YES":
-            continue
-        if meta["default"] is not None:
-            continue
+                    tyyppi = meta["type"]
+                    if any(numeerinen in tyyppi for numeerinen in (
+                        "int", "decimal", "float", "double", "numeric", "real", "bit", "bool"
+                    )):
+                        insert_sarakkeet.append(sarake)
+                        insert_arvot.append(0)
+                    elif any(merkkityyppi in tyyppi for merkkityyppi in ("char", "text", "enum", "set")):
+                        insert_sarakkeet.append(sarake)
+                        insert_arvot.append("")
+                    elif "datetime" in tyyppi or "timestamp" in tyyppi:
+                        insert_sarakkeet.append(sarake)
+                        insert_arvot.append("1970-01-01 00:00:00")
+                    elif tyyppi.startswith("date"):
+                        insert_sarakkeet.append(sarake)
+                        insert_arvot.append("1970-01-01")
+                    elif tyyppi.startswith("time"):
+                        insert_sarakkeet.append(sarake)
+                        insert_arvot.append("00:00:00")
+                    elif "json" in tyyppi:
+                        insert_sarakkeet.append(sarake)
+                        insert_arvot.append("{}")
+                    else:
+                        raise RuntimeError(
+                            f"game-taulussa vaaditaan sarake '{sarake}', jolle ei osattu antaa oletusarvoa."
+                        )
 
-        tyyppi = meta["type"]
-        if any(numerinen in tyyppi for numeerinen in ("int", "decimal", "float", "double")):
-            insert_sarakkeet.append(sarake)
-            insert_arvot.append(0)
-        elif "char" in tyyppi or "text" in tyyppi:
-            insert_sarakkeet.append(sarake)
-            insert_arvot.append("")
-        else:
-            raise RuntimeError(
-                f"game-taulussa vaaditaan sarake '{sarake}', jolle ei osattu antaa oletusarvoa."
-            )
+                if insert_sarakkeet:
+                    placeholders = ", ".join(["%s"] * len(insert_sarakkeet))
+                    sarakkeet_sql = ", ".join(insert_sarakkeet)
+                    yritykset.append((
+                        f"INSERT INTO game ({sarakkeet_sql}) VALUES ({placeholders})",
+                        tuple(insert_arvot)
+                    ))
+                    dynaaminen_insert_lisatty = True
+    except Exception:
+        # Jos dynaaminen tunnistus epäonnistuu, jatketaan fallback-yrityksillä.
+        pass
 
-    placeholders = ", ".join(["%s"] * len(insert_sarakkeet))
-    sarakkeet_sql = ", ".join(insert_sarakkeet)
-    cursor.execute(
-        f"INSERT INTO game ({sarakkeet_sql}) VALUES ({placeholders})",
-        tuple(insert_arvot)
-    )
-    conn.commit()
+    # Fallback: yritetään yleisimpiä skeemoja järjestyksessä.
+    yritykset.extend([
+        ("INSERT INTO game (username, password, points, hiscore) VALUES (%s, %s, %s, %s)", (username, "", 1000, 0)),
+        ("INSERT INTO game (username, points, hiscore) VALUES (%s, %s, %s)", (username, 1000, 0)),
+        ("INSERT INTO game (username, points) VALUES (%s, %s)", (username, 1000)),
+        ("INSERT INTO game (username) VALUES (%s)", (username,)),
+    ])
+
+    if not dynaaminen_insert_lisatty and not yritykset:
+        raise RuntimeError("Pelaajan lisäämiseen ei löytynyt yhtään käyttökelpoista insert-vaihtoehtoa.")
+
+    _suorita_insert_yhteensopivasti(cursor, conn, yritykset)
 
 
 @app.route('/set_name', methods=['POST'])
