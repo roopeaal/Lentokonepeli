@@ -11,6 +11,7 @@ This README is written from a published product perspective.
 ## Published Version
 
 - Live site: [https://lentokonepeli.onrender.com](https://lentokonepeli.onrender.com)
+- Source repository: [https://github.com/roopeaal/Maanarvauspeli](https://github.com/roopeaal/Maanarvauspeli)
 - Hosting platform: Render (Free Web Service)
 - Database: Aiven MySQL (SSL connection)
 
