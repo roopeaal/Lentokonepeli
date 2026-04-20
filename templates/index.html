@@ -13,11 +13,14 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100svh;
+            height: auto;
+            overflow-x: hidden;
+            box-sizing: border-box;
         }
 
         .container {
-            width: 80%;
+            width: min(94vw, 800px);
             max-width: 800px;
             text-align: center;
             background-color: rgba(247, 236, 214, 0.86);
@@ -41,11 +44,17 @@
         .lore {
             position: relative;
             max-width: 660px;
-            margin: -34px auto -30px;
+            margin: -16px auto -2px;
             width: min(100%, 660px);
             aspect-ratio: 740 / 456;
-            padding: clamp(114px, 16.2vw, 132px) clamp(94px, 14vw, 112px) clamp(24px, 4vw, 34px);
-            text-align: left;
+            padding:
+                clamp(56px, 7vw, 72px)
+                clamp(90px, 14vw, 112px)
+                clamp(44px, 6vw, 56px);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             background-image: url('{{ url_for('static', filename='images/lore-scroll-solid-v2.png') }}');
             background-position: center;
             background-repeat: no-repeat;
@@ -53,13 +62,13 @@
             background-color: transparent;
             border: 0;
             border-radius: 0;
-            min-height: 320px;
+            min-height: 0;
             box-shadow: none;
             box-sizing: border-box;
         }
 
         .lore-teksti {
-            margin: 0 auto;
+            margin: 0;
             color: #2f2722;
             font-family: "Apple Chancery", "Snell Roundhand", "Bradley Hand", "Book Antiqua", "Palatino Linotype", serif;
             font-style: italic;
@@ -69,6 +78,9 @@
             letter-spacing: 0.2px;
             text-shadow: 0.3px 0.8px 0 rgba(255, 246, 222, 0.26);
             max-width: 100%;
+            width: 100%;
+            text-align: left;
+            transform: none;
         }
 
         .lore-teksti::first-letter {
@@ -89,46 +101,111 @@
 
             .lore {
                 width: min(100%, 620px);
-                min-height: 300px;
-                margin: -24px auto -18px;
-                padding: clamp(100px, 14.6vw, 116px) clamp(72px, 10vw, 92px) clamp(20px, 3.2vw, 28px);
+                margin: -10px auto 0;
+                padding:
+                    clamp(46px, 7vw, 60px)
+                    clamp(76px, 11vw, 94px)
+                    clamp(38px, 6vw, 50px);
             }
 
             .lore-teksti {
                 font-size: clamp(0.9em, 1.85vw, 1em);
                 line-height: 1.28;
+                transform: none;
             }
         }
 
         @media (max-width: 640px) {
+            body {
+                align-items: flex-start;
+                padding: 8px 0;
+            }
+
             .container {
-                width: min(96vw, 800px);
-                padding: 16px 10px 16px;
-                overflow-x: auto;
+                width: min(95vw, 800px);
+                padding: 10px 10px 12px;
+                overflow-x: hidden;
+            }
+
+            h1 {
+                font-size: clamp(1.72rem, 9vw, 2.15rem);
+                line-height: 1.06;
+                margin-bottom: 2px;
             }
 
             .lore {
-                width: 560px;
-                min-height: 290px;
-                padding: 100px 72px 24px;
-                margin: -18px auto -12px;
+                width: 100%;
+                max-width: 100%;
+                aspect-ratio: 740 / 456;
+                margin: -4px auto 0;
+                padding:
+                    clamp(34px, 10vw, 48px)
+                    clamp(58px, 17vw, 78px)
+                    clamp(30px, 9vw, 44px);
             }
 
             .lore-teksti {
-                font-size: 0.9em;
-                line-height: 1.25;
+                font-size: clamp(0.82rem, 2.75vw, 0.9rem);
+                line-height: 1.18;
+            }
+
+            form {
+                margin-top: 0;
+            }
+
+            label {
+                margin-bottom: 4px;
+            }
+
+            input[type="text"] {
+                width: min(440px, 94%);
+                padding: 10px;
+            }
+
+            button[type="submit"] {
+                margin-top: 10px;
+                padding: 12px 24px;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .container {
+                width: min(96vw, 800px);
+                padding: 8px 8px 10px;
+            }
+
+            h1 {
+                font-size: clamp(1.58rem, 8.6vw, 1.95rem);
+                line-height: 1.04;
+            }
+
+            .lore {
+                padding:
+                    clamp(28px, 9vw, 40px)
+                    clamp(52px, 16.8vw, 70px)
+                    clamp(24px, 8vw, 36px);
+            }
+
+            .lore-teksti {
+                font-size: clamp(0.76rem, 2.9vw, 0.84rem);
+                line-height: 1.15;
+            }
+
+            input[type="text"] {
+                width: min(420px, 96%);
+                font-size: 15px;
             }
         }
 
         form {
-            margin-top: -2px;
+            margin-top: 2px;
         }
 
         label {
             display: block;
             font-weight: bold;
             color: #34495e;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
         }
 
         input[type="text"] {
