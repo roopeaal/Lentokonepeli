@@ -522,8 +522,35 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Luo kartta
-            var kartta = L.map('kartta').setView([0, 0], 2); // Aseta alkuarvo ja zoom-taso
+            var KARTTA_NAKYMA_AVAIN = 'lentokonepeli_map_view';
+
+            function haeTallennettuKarttaNakyma() {
+                try {
+                    var raw = localStorage.getItem(KARTTA_NAKYMA_AVAIN);
+                    if (!raw) return null;
+                    var data = JSON.parse(raw);
+                    if (!data) return null;
+                    var lat = Number(data.lat);
+                    var lng = Number(data.lng);
+                    var zoom = Number(data.zoom);
+                    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(zoom)) {
+                        return null;
+                    }
+                    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                        return null;
+                    }
+                    return { lat: lat, lng: lng, zoom: zoom };
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            // Luo kartta: käytä edellistä näkymää, jos se on tallennettu.
+            var tallennettuNakyma = haeTallennettuKarttaNakyma();
+            var kartta = L.map('kartta').setView(
+                tallennettuNakyma ? [tallennettuNakyma.lat, tallennettuNakyma.lng] : [0, 0],
+                tallennettuNakyma ? tallennettuNakyma.zoom : 2
+            );
             var arvatutMaat = {{ arvatut_maat|default([], true)|tojson }};
             var isoMaaNimiMap = {{ iso_maa_nimi_map|default({}, true)|tojson }};
             var maaNimiMap = {{ maa_nimi_map|default({}, true)|tojson }};
@@ -741,9 +768,29 @@
                 arvausKentta.style.width = kentanLeveys + 'px';
             }
 
+            function tallennaKarttaNakyma() {
+                try {
+                    if (!kartta) return;
+                    var keskikohta = kartta.getCenter();
+                    localStorage.setItem(KARTTA_NAKYMA_AVAIN, JSON.stringify({
+                        lat: Number(keskikohta.lat.toFixed(6)),
+                        lng: Number(keskikohta.lng.toFixed(6)),
+                        zoom: kartta.getZoom()
+                    }));
+                } catch (e) {
+                    // Tallennus ei estä pelaamista, joten ignoroidaan hiljaisesti.
+                }
+            }
+
             paivitaArvausKentanLeveys();
             window.addEventListener('resize', paivitaArvausKentanLeveys);
             window.addEventListener('resize', paivitaIlotulitusCanvasKoko);
+            kartta.on('moveend zoomend', tallennaKarttaNakyma);
+
+            var arvausForm = document.querySelector('.arvaus-alue form');
+            if (arvausForm) {
+                arvausForm.addEventListener('submit', tallennaKarttaNakyma);
+            }
 
             function haeRajaPaksuus(perusPaksuus) {
                 var zoom = kartta.getZoom();
@@ -945,6 +992,7 @@
                     event.preventDefault(); // Estä linkin oletustoiminto (navigointi)
                 }
                 lopetaIlotulitus();
+                tallennaKarttaNakyma();
                 // Tee pyyntö uuden maan arpomiseksi
                 fetch('/new_game')  // Korvaa '/new_game' tarvittavalla reitillä palvelimellasi
                     .then(response => response.json())
