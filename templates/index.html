@@ -55,49 +55,39 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background-image: url('{{ url_for('static', filename='images/lore-scroll-opaque-light.png') }}');
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: 100% 100%;
+            background-image:
+                url('{{ url_for('static', filename='images/lore-scroll-opaque-light.png') }}'),
+                linear-gradient(
+                    90deg,
+                    rgba(154, 112, 64, 0.92) 0%,
+                    rgba(223, 194, 149, 0.96) 34%,
+                    rgba(249, 236, 211, 0.98) 52%,
+                    rgba(220, 190, 146, 0.96) 70%,
+                    rgba(152, 109, 61, 0.92) 100%
+                ),
+                linear-gradient(
+                    90deg,
+                    rgba(154, 112, 64, 0.92) 0%,
+                    rgba(223, 194, 149, 0.96) 34%,
+                    rgba(249, 236, 211, 0.98) 52%,
+                    rgba(220, 190, 146, 0.96) 70%,
+                    rgba(152, 109, 61, 0.92) 100%
+                );
+            background-position:
+                center center,
+                left 7.75% center,
+                right 7.75% center;
+            background-repeat: no-repeat, no-repeat, no-repeat;
+            background-size:
+                100% 100%,
+                3.05% 81%,
+                3.05% 81%;
             background-color: transparent;
             border: 0;
             border-radius: 0;
             min-height: 0;
             box-shadow: none;
             box-sizing: border-box;
-            isolation: isolate;
-        }
-
-        /* Peitä rullien läpikuultavat kohdat, jotta taustakartta ei näy niiden läpi. */
-        .lore::before,
-        .lore::after {
-            content: "";
-            position: absolute;
-            top: 9%;
-            bottom: 8%;
-            width: 4.1%;
-            border-radius: 999px;
-            pointer-events: none;
-            z-index: 0;
-            background: linear-gradient(
-                90deg,
-                rgba(154, 112, 64, 0.95) 0%,
-                rgba(223, 194, 149, 0.97) 34%,
-                rgba(249, 236, 211, 0.99) 52%,
-                rgba(220, 190, 146, 0.97) 70%,
-                rgba(152, 109, 61, 0.95) 100%
-            );
-            box-shadow:
-                inset 0 0 4px rgba(76, 46, 20, 0.2),
-                0 0 1px rgba(76, 46, 20, 0.28);
-        }
-
-        .lore::before {
-            left: 7.15%;
-        }
-
-        .lore::after {
-            right: 7.15%;
         }
 
         .lore-teksti {
@@ -115,7 +105,7 @@
             text-align: left;
             transform: none;
             position: relative;
-            z-index: 1;
+            z-index: 0;
         }
 
         .lore-teksti::first-letter {
@@ -181,13 +171,6 @@
                     clamp(30px, 9vw, 44px);
             }
 
-            .lore::before,
-            .lore::after {
-                width: 4.6%;
-                top: 8.8%;
-                bottom: 8.2%;
-            }
-
             .lore-teksti {
                 font-size: clamp(0.82rem, 2.75vw, 0.9rem);
                 line-height: 1.18;
@@ -230,13 +213,6 @@
                     clamp(28px, 9vw, 40px)
                     clamp(52px, 16.8vw, 70px)
                     clamp(24px, 8vw, 36px);
-            }
-
-            .lore::before,
-            .lore::after {
-                width: 5.1%;
-                top: 8.5%;
-                bottom: 8%;
             }
 
             .lore-teksti {
