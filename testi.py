@@ -29,7 +29,29 @@ YLEISET_MAA_ALIAKSET = {
     "finlad": "finland",
     "republicofserbia": "serbia",
 }
-VIHJE_HINTA = 300
+
+
+def laske_arvauksen_pistevahennys(points):
+    pisteet = max(0, int(points or 0))
+    if pisteet > 500:
+        return 100
+    if pisteet > 400:
+        return 50
+    if pisteet > 300:
+        return 25
+    if pisteet > 200:
+        return 10
+    if pisteet > 100:
+        return 5
+    if pisteet > 0:
+        return 1
+    return 0
+
+
+def laske_vihjeen_pistehinta(points):
+    pisteet = max(0, int(points or 0))
+    # Vihjeen hinta = kahden arvauksen verran nykyisellä pistealueella.
+    return min(pisteet, laske_arvauksen_pistevahennys(pisteet) * 2)
 
 # Tietokantayhteyden avausfunktio
 def get_db_connection():
@@ -388,13 +410,19 @@ def get_largest_airport_name():
             return jsonify({'largest_airport_name': 'Arvaa ensin maa.'})
 
         points = None
+        vihje_hinta = 0
         if username:
             points = hae_kayttajan_pisteet(username)
-            if not vihje_kaytetty and not kierros_voitettu:
-                points -= VIHJE_HINTA
+            vihje_hinta = laske_vihjeen_pistehinta(points)
+            if not vihje_kaytetty and not kierros_voitettu and vihje_hinta > 0:
+                points = max(0, points - vihje_hinta)
                 lisaa_pisteet(username, points)
 
-        response = make_response(jsonify({'largest_airport_name': largest_airport_name, 'points': points}))
+        response = make_response(jsonify({
+            'largest_airport_name': largest_airport_name,
+            'points': points,
+            'hint_cost': vihje_hinta
+        }))
         response.set_cookie('vihje_kaytetty', '1')
         return response
     else:
@@ -660,6 +688,7 @@ def game():
                 result=tulos,
                 result_category=result_category,
                 points=0,
+                vihje_hinta=laske_vihjeen_pistehinta(0),
                 vihje_teksti=vihje_teksti,
                 vihje_kaytetty=vihje_kaytetty,
                 arvatut_maat=arvatut_maat,
@@ -680,6 +709,7 @@ def game():
         response = make_response(render_template(
             'game.html',
             points=user_points,
+            vihje_hinta=laske_vihjeen_pistehinta(user_points),
             vihje_teksti=vihje_teksti,
             vihje_kaytetty=vihje_kaytetty,
             arvatut_maat=[],
@@ -738,10 +768,12 @@ def game():
                     oikea_osuma = True
                     oikea_maa_iso = maan_iso_koodi
                 else:
-                    # Vähennä 100 pistettä väärästä arvauksesta
-                    pisteet = -100
-                    lisaa_pisteet(username, user_points + pisteet)  # Päivitä pisteet tietokantaan
-                    user_points += pisteet  # Päivitä käyttäjän pistemäärä
+                    # Vähennys määräytyy nykyisten pisteiden mukaan, ei koskaan alle nollan.
+                    vahennys = laske_arvauksen_pistevahennys(user_points)
+                    uusi_pistemaara = max(0, user_points - vahennys)
+                    pisteet = uusi_pistemaara - user_points
+                    lisaa_pisteet(username, uusi_pistemaara)
+                    user_points = uusi_pistemaara
                     result_category = 'info'
                     tulos = f'Arvauksesi "{pelaajan_maa}" on väärin. Kolumbus on {etaisyys} km päässä {ilmansuunta}.'
 
@@ -751,6 +783,7 @@ def game():
                 response = make_response(
                     render_template('game.html', result=tulos, result_category=result_category, points=user_points,
                                     pisteet=pisteet, pelaajan_maa_koord=pelaajan_maa_koord,
+                                    vihje_hinta=laske_vihjeen_pistehinta(user_points),
                                     vihje_teksti=vihje_teksti, vihje_kaytetty=vihje_kaytetty,
                                     arvatut_maat=arvatut_maat, sallitut_iso_koodit=sallitut_iso_koodit,
                                     iso_maa_nimi_map=iso_maa_nimi_map,
@@ -779,6 +812,7 @@ def game():
         result=tulos,
         result_category=result_category,
         points=user_points,
+        vihje_hinta=laske_vihjeen_pistehinta(user_points),
         vihje_teksti=vihje_teksti,
         vihje_kaytetty=vihje_kaytetty,
         arvatut_maat=arvatut_maat,

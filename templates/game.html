@@ -508,7 +508,7 @@
     <div id="kartta"></div>
 
     <!-- Lisää "Vihje" -napin ja suurimman lentokentän nimen näyttävän elementin -->
-    <button id="vihje-nappi" type="button" {% if vihje_kaytetty or kierros_voitettu %}disabled{% endif %}>Vihje -300p</button>
+    <button id="vihje-nappi" type="button" {% if vihje_kaytetty or kierros_voitettu %}disabled{% endif %}>Vihje -{{ vihje_hinta|default(0, true) }}p</button>
     <p id="lentokentta-nimi" {% if vihje_teksti %}style="display: block;"{% endif %}>{{ vihje_teksti or '' }}</p>
 
     <div class="toiminto-rivi">
