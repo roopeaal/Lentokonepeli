@@ -1,42 +1,44 @@
-# Kristoffer Kolumbuksen jaljilla - maanarvauspeli
+# Kristoffer Kolumbuksen jaljilla - Country Guessing Game
 
-Selainpohjainen maanarvauspeli, jossa pelaaja etsii "kadonnutta" Kolumbusta etaisyys- ja ilmansuuntavihjeiden avulla.
-Tama README on kirjoitettu julkaistun valmiin tuotteen esittelyyn.
+A browser-based country guessing game where the player tries to find the "missing" Christopher Columbus using distance and compass-direction hints.
+This README is written from a published product perspective.
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.x-black)
 ![MySQL](https://img.shields.io/badge/MySQL-8.x-0F5D9C)
 ![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7)
 
-## Julkaistu versio
+## Published Version
 
-- Live-sivu: [https://lentokonepeli.onrender.com](https://lentokonepeli.onrender.com)
-- Julkaisualusta: Render (Free Web Service)
-- Tietokanta: Aiven MySQL (SSL-yhteys)
+- Live site: [https://lentokonepeli.onrender.com](https://lentokonepeli.onrender.com)
+- Hosting platform: Render (Free Web Service)
+- Database: Aiven MySQL (SSL connection)
 
-## Mitä tuotteessa on
+## Product Features
 
-- Interaktiivinen maailmankartta, josta voi arvata maita klikkaamalla.
-- Maan arvaus myos kirjoittamalla, mukana kirjoitusvirheiden sieto ja ehdotukset.
-- Dynaaminen pisteytys ja vihjejarjestelma.
-- Visuaalisesti teemoitettu "antiikkikartta"-kayttoliittyma.
-- Top 10 -pistetaulukko.
-- Mobiilioptimoitu nakyma.
+- Interactive world map with clickable countries.
+- Country guessing by typing or map clicking.
+- Typo-tolerant input with country suggestions.
+- Dynamic scoring and hint system.
+- Themed antique-map visual style.
+- Top 10 leaderboard view.
+- Mobile-optimized UI.
 
-## Julkaisun tekninen kokonaisuus
+## Production Tech Stack
 
 - Backend: Flask + Gunicorn
 - Frontend: Jinja2, CSS, JavaScript
-- Kartta: Leaflet + GeoJSON
-- Geolaskenta: geopy
-- Tietokanta-ajuri: mysql-connector-python
+- Map: Leaflet + GeoJSON
+- Geospatial calculations: geopy
+- Database driver: mysql-connector-python
 
-## Kayttohuomiot (julkaistu tuotanto)
+## Production Notes
 
-- Renderin ilmainen palvelu voi menna nukkumaan, jos sovellusta ei kayteta hetkeen.
-- Tasta syysta ensimmainen lataus voi joskus kestaa noin 30-90 sekuntia (cold start), jonka jalkeen peli toimii normaalisti.
+- The app is deployed on Render Free.
+- Free services can spin down after inactivity.
+- First load after inactivity may take around 30-90 seconds (cold start), after which the game runs normally.
 
-## Lisenssi ja attribuutiot
+## License and Attributions
 
-Sovelluksen antiikkikartta-taustakuva on public domain -kuva Wikimedia Commonsista:
+The antique world-map background image is public domain from Wikimedia Commons:
 https://commons.wikimedia.org/wiki/File:Antique_World_Map_of_Continents_and_Oceans_1700.png
