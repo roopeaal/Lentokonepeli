@@ -31,6 +31,12 @@ YLEISET_MAA_ALIAKSET = {
     "republicofserbia": "serbia",
 }
 
+# Varalista tunnetuista kartalla ei-klikattavista maista/alueista.
+# Tätä käytetään, jos selain ei ole vielä ehtinyt lähettää klikattavien maiden listaa.
+KARTTA_EI_KLIKATTAVAT_ISO_FALLBACK = {
+    "GP",  # Guadeloupe
+}
+
 
 def laske_arvauksen_pistevahennys(points):
     pisteet = max(0, int(points or 0))
@@ -399,23 +405,45 @@ def logout():
     return response
 
 
-# Arvotaan uusi maa ja kenttä ja tallennetaan koordinaatit evästeisiin
-def arvo_uusi_maa_ja_kentta():
+# Arvotaan uusi maa ja kenttä ja tallennetaan koordinaatit evästeisiin.
+# Parametri sallitut_iso_koodit rajaa arvonnan vain kartalta klikattaviin maihin.
+def arvo_uusi_maa_ja_kentta(sallitut_iso_koodit=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Haetaan satunnainen maa ja sen suurin lentokenttä
-        cursor.execute("""
-            SELECT country.name, MAX(airport.name) AS largest_airport, country.latitude, country.longitude 
-            FROM country 
-            INNER JOIN airport ON country.iso_country = airport.iso_country 
-            WHERE airport.type = 'large_airport' 
-            GROUP BY country.name, country.latitude, country.longitude;
-        """)
+        query = """
+            SELECT
+                country.name,
+                MAX(airport.name) AS largest_airport,
+                country.latitude,
+                country.longitude,
+                country.iso_country
+            FROM country
+            INNER JOIN airport ON country.iso_country = airport.iso_country
+            WHERE airport.type = 'large_airport'
+        """
+        values = []
+
+        if sallitut_iso_koodit:
+            placeholders = ", ".join(["%s"] * len(sallitut_iso_koodit))
+            query += f" AND country.iso_country IN ({placeholders})"
+            values.extend(list(sallitut_iso_koodit))
+
+        if KARTTA_EI_KLIKATTAVAT_ISO_FALLBACK:
+            placeholders = ", ".join(["%s"] * len(KARTTA_EI_KLIKATTAVAT_ISO_FALLBACK))
+            query += f" AND country.iso_country NOT IN ({placeholders})"
+            values.extend(sorted(KARTTA_EI_KLIKATTAVAT_ISO_FALLBACK))
+
+        query += """
+            GROUP BY country.iso_country, country.name, country.latitude, country.longitude;
+        """
+
+        cursor.execute(query, tuple(values))
         tiedot = cursor.fetchall()
         if not tiedot:
             return None
-        return random.choice(tiedot)  # Palautetaan (maa, lentokenttä, latitude, longitude)
+        # Palautetaan (maa, lentokenttä, latitude, longitude, iso_country)
+        return random.choice(tiedot)
     except Exception as e:
         print("Virhe uutta maata ja kenttää arvottaessa:", e)
         return None
@@ -746,6 +774,24 @@ def _hae_arvatut_maat_cookie():
             arvatut_maat.append(koodi)
     return arvatut_maat
 
+
+def _hae_klikattavat_maat_cookie():
+    klikattavat_raaka = request.cookies.get('klikattavat_maat', '')
+    klikattavat = []
+    for arvo in klikattavat_raaka.split(','):
+        koodi = arvo.strip().upper()
+        if len(koodi) == 2 and koodi.isalpha() and koodi not in klikattavat:
+            klikattavat.append(koodi)
+    return klikattavat
+
+
+def _hae_arvottavat_iso_koodit(sallitut_iso_koodit=None):
+    klikattavat = _hae_klikattavat_maat_cookie()
+    if sallitut_iso_koodit:
+        sallitut_set = set(sallitut_iso_koodit)
+        klikattavat = [koodi for koodi in klikattavat if koodi in sallitut_set]
+    return klikattavat if klikattavat else None
+
 def _tallenna_arvatut_maat_cookie(response, arvatut_maat):
     if arvatut_maat:
         response.set_cookie('arvatut_maat', ",".join(arvatut_maat))
@@ -785,7 +831,8 @@ def game():
 
     # Jos koordinaatit puuttuvat, arvotaan uudet maat ja koordinaatit
     if arvottu_maa is None or arvottu_latitude is None or arvottu_longitude is None:
-        arvottu_tieto = arvo_uusi_maa_ja_kentta()
+        arvottava_iso_lista = _hae_arvottavat_iso_koodit(sallitut_iso_koodit=sallitut_iso_koodit)
+        arvottu_tieto = arvo_uusi_maa_ja_kentta(arvottava_iso_lista)
         if arvottu_tieto is None:
             tulos = "Tietokannassa ei ole maita/lentokenttia. Aja sql/init.sql ensin."
             result_category = 'danger'
@@ -968,7 +1015,7 @@ def start_new_game():
         lisaa_pisteet(username, 1000)
 
         # Arvotaan uusi oikea maa ja tallennetaan se tietokantaan käyttäjänimen perusteella
-        arvottu_tieto = arvo_uusi_maa_ja_kentta()
+        arvottu_tieto = arvo_uusi_maa_ja_kentta(_hae_arvottavat_iso_koodit())
         if arvottu_tieto:
             arvottu_maa = arvottu_tieto[0]
             arvottu_latitude = arvottu_tieto[2]
@@ -1016,7 +1063,7 @@ def update_correct_answer():
     if not username:
         return jsonify({'success': False, 'message': 'Käyttäjää ei löytynyt.'}), 401
 
-    new_correct_country = arvo_uusi_maa_ja_kentta()  # Arvotaan uusi oikea maa
+    new_correct_country = arvo_uusi_maa_ja_kentta(_hae_arvottavat_iso_koodit())  # Arvotaan uusi oikea maa
     if new_correct_country:
         # Tallennetaan uusi oikea maa tietokantaan
         query = "UPDATE game SET kierroksen_Maa = %s WHERE username = %s"
@@ -1030,7 +1077,7 @@ def update_correct_answer():
 def new_game():
     try:
         username = request.cookies.get('username')
-        arvottu_tieto = arvo_uusi_maa_ja_kentta()
+        arvottu_tieto = arvo_uusi_maa_ja_kentta(_hae_arvottavat_iso_koodit())
         if arvottu_tieto:
             arvottu_maa = arvottu_tieto[0]
             arvottu_latitude = arvottu_tieto[2]

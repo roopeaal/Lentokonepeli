@@ -905,6 +905,28 @@
             function piirraMaidenRajatJaArvatutMaat() {
                 haeMaatGeojson()
                     .then(data => {
+                        try {
+                            var klikattavatKoodit = [];
+                            (data.features || []).forEach(function (feature) {
+                                var props = feature.properties || {};
+                                var isoKoodi = (props['ISO3166-1-Alpha-2'] || '').toUpperCase();
+                                if (sallitutMaat.has(isoKoodi)) {
+                                    klikattavatKoodit.push(isoKoodi);
+                                }
+                            });
+                            var uniikitKlikattavat = Array.from(new Set(klikattavatKoodit));
+                            if (uniikitKlikattavat.length > 0) {
+                                document.cookie = [
+                                    'klikattavat_maat=' + uniikitKlikattavat.join(','),
+                                    'path=/',
+                                    'max-age=' + (60 * 60 * 24 * 30),
+                                    'SameSite=Lax'
+                                ].join(';');
+                            }
+                        } catch (e) {
+                            console.warn('Klikattavien maatietojen tallennus epäonnistui:', e);
+                        }
+
                         maatLayer = L.geoJSON(data, {
                             style: haeMaanTyyli,
                             onEachFeature: function (feature, layer) {
