@@ -523,6 +523,8 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var KARTTA_NAKYMA_AVAIN = 'lentokonepeli_map_view';
+            var OLETUS_KARTTA_KESKIPISTE = [40.4168, -3.7038]; // Madrid, Espanja
+            var OLETUS_KARTTA_ZOOM = 2;
 
             function haeTallennettuKarttaNakyma() {
                 try {
@@ -548,8 +550,8 @@
             // Luo kartta: käytä edellistä näkymää, jos se on tallennettu.
             var tallennettuNakyma = haeTallennettuKarttaNakyma();
             var kartta = L.map('kartta').setView(
-                tallennettuNakyma ? [tallennettuNakyma.lat, tallennettuNakyma.lng] : [0, 0],
-                tallennettuNakyma ? tallennettuNakyma.zoom : 2
+                tallennettuNakyma ? [tallennettuNakyma.lat, tallennettuNakyma.lng] : OLETUS_KARTTA_KESKIPISTE,
+                tallennettuNakyma ? tallennettuNakyma.zoom : OLETUS_KARTTA_ZOOM
             );
             var arvatutMaat = {{ arvatut_maat|default([], true)|tojson }};
             var isoMaaNimiMap = {{ iso_maa_nimi_map|default({}, true)|tojson }};
