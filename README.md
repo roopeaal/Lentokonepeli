@@ -15,6 +15,8 @@ This README is written from a published product perspective.
 - Hosting platform: Render (Free Web Service)
 - Database: Aiven MySQL (SSL connection)
 
+<img width="1440" height="779" alt="image" src="https://github.com/user-attachments/assets/ef90e037-e41f-429f-9b23-cb78e02530ae" />
+
 ## Product Features
 
 - Interactive world map with clickable countries.
