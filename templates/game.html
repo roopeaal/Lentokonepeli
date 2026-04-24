@@ -226,29 +226,51 @@
 
             .ylarivi {
                 grid-template-columns: minmax(0, 1fr) auto;
-                gap: 6px;
+                grid-template-rows: auto auto;
+                grid-template-areas:
+                    "title logo"
+                    "guess points";
+                column-gap: 8px;
+                row-gap: 6px;
+                align-items: end;
             }
 
-            .vasen-ylasarake {
-                transform: none;
-                display: grid;
-                grid-template-rows: 1fr auto 1fr auto;
-                align-items: center;
-            }
-
+            .vasen-ylasarake,
             .oikea-ylasarake {
-                min-width: 126px;
-                gap: 4px;
-                justify-self: end;
+                display: contents;
+                transform: none;
+            }
+
+            .vasen-ylasarake h1 {
+                grid-area: title;
+                align-self: start;
+            }
+
+            .vasen-ylasarake .arvaus-alue {
+                grid-area: guess;
+                width: min(100%, 430px);
+                margin: 0;
+            }
+
+            .kompassi-kortti {
+                grid-area: logo;
+                justify-self: center;
+                align-self: start;
             }
 
             .kompassi-svg {
-                width: 128px;
-                max-width: 39vw;
+                width: 150px;
+                max-width: 44vw;
             }
 
             #pisteet {
-                font-size: 18px;
+                grid-area: points;
+                justify-self: center;
+                align-self: end;
+                width: auto;
+                margin: 0 0 8px;
+                line-height: 1.05;
+                font-size: 19px;
             }
         }
 
@@ -259,22 +281,22 @@
             }
 
             .ylarivi {
-                grid-template-columns: minmax(0, 1fr) auto;
-                gap: 4px;
+                column-gap: 6px;
+                row-gap: 4px;
             }
 
-            .oikea-ylasarake {
-                min-width: 104px;
-                gap: 2px;
+            .vasen-ylasarake .arvaus-alue {
+                width: min(100%, 315px);
             }
 
             .kompassi-svg {
-                width: 116px;
-                max-width: 42vw;
+                width: 138px;
+                max-width: 46vw;
             }
 
             #pisteet {
-                font-size: 15px;
+                font-size: 16px;
+                margin: 0 0 6px;
             }
 
             .arvaus-alue {
