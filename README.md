@@ -10,12 +10,12 @@ This README is written from a published product perspective.
 
 ## Published Version
 
-- Live site: [https://lentokonepeli.onrender.com](https://maanarvauspeli.onrender.com)
+- Live site: [https://lentokonepeli.onrender.com](https://lentokonepeli.onrender.com)
 - Source repository: [https://github.com/roopeaal/Maanarvauspeli](https://github.com/roopeaal/Maanarvauspeli)
 - Hosting platform: Render (Free Web Service)
 - Database: Aiven MySQL (SSL connection)
 
-<img width="1440" height="779" alt="image" src="https://github.com/user-attachments/assets/ef90e037-e41f-429f-9b23-cb78e02530ae" />
+<img width="2880" height="1558" alt="image" src="https://github.com/user-attachments/assets/51a58619-2b47-4d02-9d7a-0eab82a4355f" />
 
 ## Product Features
 
