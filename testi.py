@@ -72,15 +72,54 @@ AIVEN_WAKE_LOCK = threading.Lock()
 AIVEN_LAST_WAKE_ATTEMPT_TS = 0.0
 AIVEN_WAKE_CONFIG_WARNED = False
 
+
+def _is_render_runtime():
+    return (os.getenv('RENDER') or '').strip().lower() == 'true'
+
+
+def _raise_missing_db_config(missing_keys):
+    puuttuvat = ", ".join(missing_keys)
+    raise RuntimeError(
+        f"Tietokanta-asetukset puuttuvat Renderista: {puuttuvat}. "
+        "Aseta ne palvelun Environment-sivulla ja deployaa uudelleen."
+    )
+
 # Tietokantayhteyden avausfunktio
 def _build_db_connection_config():
     db_url = os.getenv('DB_URL') or os.getenv('DATABASE_URL') or os.getenv('DB_URI')
     parsed = urlparse(db_url) if db_url else None
 
-    host = (os.getenv('DB_HOST') or (parsed.hostname if parsed else '') or '127.0.0.1').strip()
-    port_raw = (os.getenv('DB_PORT') or (str(parsed.port) if parsed and parsed.port else '') or '3306').strip()
-    database = (os.getenv('DB_NAME') or (parsed.path.lstrip('/') if parsed and parsed.path else '') or 'lentopeli').strip()
-    user = (os.getenv('DB_USER') or (unquote(parsed.username) if parsed and parsed.username else '') or 'root').strip()
+    env_host = (os.getenv('DB_HOST') or '').strip()
+    env_port = (os.getenv('DB_PORT') or '').strip()
+    env_name = (os.getenv('DB_NAME') or '').strip()
+    env_user = (os.getenv('DB_USER') or '').strip()
+
+    parsed_host = (parsed.hostname if parsed else '') or ''
+    parsed_port = (str(parsed.port) if parsed and parsed.port else '') or ''
+    parsed_name = (parsed.path.lstrip('/') if parsed and parsed.path else '') or ''
+    parsed_user = (unquote(parsed.username) if parsed and parsed.username else '') or ''
+
+    # Renderissä vaaditaan eksplisiittiset tietokanta-arvot (tai DB_URL), jotta ei
+    # vahingossa yritetä localhostiin.
+    if _is_render_runtime() and not db_url:
+        missing = []
+        if not env_host:
+            missing.append('DB_HOST')
+        if not env_port:
+            missing.append('DB_PORT')
+        if not env_name:
+            missing.append('DB_NAME')
+        if not env_user:
+            missing.append('DB_USER')
+        if os.getenv('DB_PASSWORD') is None:
+            missing.append('DB_PASSWORD')
+        if missing:
+            _raise_missing_db_config(missing)
+
+    host = (env_host or parsed_host or '127.0.0.1').strip()
+    port_raw = (env_port or parsed_port or '3306').strip()
+    database = (env_name or parsed_name or 'lentopeli').strip()
+    user = (env_user or parsed_user or 'root').strip()
     password = os.getenv('DB_PASSWORD')
     if password is None:
         password = unquote(parsed.password) if parsed and parsed.password else ''
