@@ -44,6 +44,8 @@
             line-height: 1.05;
             max-width: none;
             flex: 1;
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
 
         .ylarivi {
@@ -188,10 +190,11 @@
         @media (max-width: 900px) {
             .ylarivi {
                 gap: 8px;
+                grid-template-columns: minmax(0, 1fr) minmax(170px, 220px);
             }
 
             .vasen-ylasarake {
-                transform: translateX(calc(44% - 100px));
+                transform: none;
             }
 
             .oikea-ylasarake {
@@ -209,6 +212,16 @@
 
             .arvaus-alue {
                 width: min(100%, 650px);
+            }
+        }
+
+        @media (min-width: 901px) and (max-width: 1100px) {
+            .ylarivi {
+                grid-template-columns: minmax(0, 1fr) minmax(200px, 240px);
+            }
+
+            .vasen-ylasarake {
+                transform: none;
             }
         }
 
@@ -856,9 +869,67 @@
 
             function normalisoiMaaSyote(teksti) {
                 if (!teksti) return '';
-                return String(teksti)
-                    .toLowerCase()
-                    .replace(/[^\p{L}\p{N}]/gu, '');
+                var arvo = String(teksti).toLowerCase();
+                if (arvo.normalize) {
+                    arvo = arvo.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                }
+                return arvo.replace(/[^\p{L}\p{N}]/gu, '');
+            }
+
+            function rakennaNormalisoituMaaIsoMap() {
+                var map = {};
+                Object.keys(isoMaaNimiMap || {}).forEach(function (isoKoodi) {
+                    var koodi = String(isoKoodi || '').toUpperCase();
+                    var nimi = isoMaaNimiMap[isoKoodi];
+                    var nimiNorm = normalisoiMaaSyote(nimi);
+                    if (koodi && nimiNorm) {
+                        map[nimiNorm] = koodi;
+                    }
+                });
+
+                Object.keys(maaNimiMap || {}).forEach(function (normAlias) {
+                    var kohdeNimi = maaNimiMap[normAlias];
+                    var kohdeNorm = normalisoiMaaSyote(kohdeNimi);
+                    var isoKoodi = map[kohdeNorm];
+                    if (isoKoodi) {
+                        map[normAlias] = isoKoodi;
+                    }
+                });
+
+                return map;
+            }
+
+            var normalisoituMaaIsoMap = rakennaNormalisoituMaaIsoMap();
+
+            function haeFeatureIsoKoodi(props) {
+                props = props || {};
+                var suoraIso = String(props['ISO3166-1-Alpha-2'] || '').toUpperCase();
+                if (sallitutMaat.has(suoraIso)) {
+                    return suoraIso;
+                }
+
+                var nimikandidaatit = [props.name, props.NAME, props.ADMIN, props.NAME_LONG];
+                for (var i = 0; i < nimikandidaatit.length; i++) {
+                    var nimiNorm = normalisoiMaaSyote(nimikandidaatit[i]);
+                    if (!nimiNorm) continue;
+
+                    if (normalisoituMaaIsoMap[nimiNorm]) {
+                        return normalisoituMaaIsoMap[nimiNorm];
+                    }
+
+                    var aliasKohde = karttaAliasit[nimiNorm];
+                    if (aliasKohde && normalisoituMaaIsoMap[aliasKohde]) {
+                        return normalisoituMaaIsoMap[aliasKohde];
+                    }
+
+                    var korjattuNimi = maaNimiMap[nimiNorm];
+                    var korjattuNorm = normalisoiMaaSyote(korjattuNimi);
+                    if (korjattuNorm && normalisoituMaaIsoMap[korjattuNorm]) {
+                        return normalisoituMaaIsoMap[korjattuNorm];
+                    }
+                }
+
+                return suoraIso || '';
             }
 
             // Lisää taustakartta ilman tekstejä (no labels), vaaleansinisellä merellä
@@ -914,7 +985,7 @@
 
             function haeMaanTyyli(feature) {
                 var props = feature.properties || {};
-                var isoKoodi = (props['ISO3166-1-Alpha-2'] || '').toUpperCase();
+                var isoKoodi = haeFeatureIsoKoodi(props);
                 var onSallittu = sallitutMaat.has(isoKoodi);
                 var onValittu = valittuMaaIso && valittuMaaIso === isoKoodi;
                 var onArvattu = arvatutMaat.includes(isoKoodi);
@@ -1018,7 +1089,7 @@
                             var klikattavatKoodit = [];
                             (data.features || []).forEach(function (feature) {
                                 var props = feature.properties || {};
-                                var isoKoodi = (props['ISO3166-1-Alpha-2'] || '').toUpperCase();
+                                var isoKoodi = haeFeatureIsoKoodi(props);
                                 if (sallitutMaat.has(isoKoodi)) {
                                     klikattavatKoodit.push(isoKoodi);
                                 }
@@ -1040,12 +1111,12 @@
                             style: haeMaanTyyli,
                             onEachFeature: function (feature, layer) {
                                 var props = feature.properties || {};
-                                var isoKoodi = (props['ISO3166-1-Alpha-2'] || '').toUpperCase();
+                                var isoKoodi = haeFeatureIsoKoodi(props);
                                 if (!sallitutMaat.has(isoKoodi)) {
                                     return;
                                 }
                                 layer.on('click', function () {
-                                    valittuMaaIso = (props['ISO3166-1-Alpha-2'] || '').toUpperCase() || null;
+                                    valittuMaaIso = haeFeatureIsoKoodi(props) || null;
                                     var maanNimi = (props.name || '').trim();
                                     var korjattuNimi = isoMaaNimiMap[valittuMaaIso] || null;
                                     var normalisoituNimi = normalisoiMaaSyote(maanNimi);

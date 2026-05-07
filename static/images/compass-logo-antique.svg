@@ -453,18 +453,18 @@
       <g transform="rotate(315 450 500)" opacity="0.24"><polygon points="450,406 441,500 450,514 459,500" fill="#3b2b18"/></g>
     </g>
 
-    <g fill="#3b2b18" font-family="Georgia, 'Times New Roman', serif" font-weight="700" text-anchor="middle" dominant-baseline="middle">
-      <text x="450" y="350" font-size="68">P</text>
-      <text x="600" y="500" font-size="68">I</text>
-      <text x="450" y="650" font-size="68">E</text>
-      <text x="300" y="500" font-size="68">L</text>
+    <g fill="#3b2b18" font-family="Georgia, 'Times New Roman', serif" font-weight="700" text-anchor="middle">
+      <text x="450" y="374" font-size="68">P</text>
+      <text x="600" y="524" font-size="68">I</text>
+      <text x="450" y="674" font-size="68">E</text>
+      <text x="300" y="524" font-size="68">L</text>
     </g>
 
     <g fill="#3b2b18" stroke="#f4ecd2" stroke-width="2.2" paint-order="stroke" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="21" letter-spacing="0.2" text-anchor="middle">
-      <text><textPath href="#arcNE" startOffset="50%" text-anchor="middle">KOILLINEN</textPath></text>
-      <text><textPath href="#arcSE" startOffset="50%" text-anchor="middle">KAAKKO</textPath></text>
-      <text><textPath href="#arcSW" startOffset="50%" text-anchor="middle">LOUNAS</textPath></text>
-      <text><textPath href="#arcNW" startOffset="50%" text-anchor="middle">LUODE</textPath></text>
+      <text dy="7"><textPath href="#arcNE" startOffset="50%" text-anchor="middle">KOILLINEN</textPath></text>
+      <text dy="7"><textPath href="#arcSE" startOffset="50%" text-anchor="middle">KAAKKO</textPath></text>
+      <text dy="7"><textPath href="#arcSW" startOffset="50%" text-anchor="middle">LOUNAS</textPath></text>
+      <text dy="7"><textPath href="#arcNW" startOffset="50%" text-anchor="middle">LUODE</textPath></text>
     </g>
 
     <g transform="rotate(-18 450 500)">
