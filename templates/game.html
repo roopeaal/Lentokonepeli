@@ -105,9 +105,7 @@
             max-width: 34vw;
             height: auto;
             display: block;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
-            transform: translateZ(0);
+            image-rendering: auto;
         }
 
         .kompassi-dot-ring {
@@ -490,6 +488,89 @@
             z-index: 40;
             opacity: 0.74;
             display: none;
+        }
+
+        @media (max-width: 620px) {
+            .ylarivi {
+                grid-template-columns: minmax(0, 1fr) minmax(132px, 47vw);
+                grid-template-rows: auto;
+                grid-template-areas: none;
+                align-items: start;
+                column-gap: 4px;
+                row-gap: 0;
+            }
+
+            .vasen-ylasarake {
+                grid-column: 1;
+                grid-row: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                gap: 0;
+                transform: none;
+                min-width: 0;
+            }
+
+            .oikea-ylasarake {
+                grid-column: 2;
+                grid-row: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                gap: 0;
+                min-width: 0;
+                width: 100%;
+            }
+
+            .vasen-ylasarake h1 {
+                grid-area: auto;
+                align-self: center;
+                margin: 0;
+            }
+
+            .vasen-ylasarake .arvaus-alue {
+                grid-area: auto;
+                width: min(100%, 360px);
+                margin: 0;
+            }
+
+            .kompassi-kortti {
+                grid-area: auto;
+                justify-self: center;
+                align-self: center;
+            }
+
+            .kompassi-svg {
+                width: clamp(224px, 48vw, 270px);
+                max-width: none;
+            }
+
+            #pisteet {
+                grid-area: auto;
+                justify-self: center;
+                align-self: center;
+                width: auto;
+                margin: -8px 0 0;
+                line-height: 1;
+                font-size: clamp(26px, 8vw, 42px);
+            }
+        }
+
+        @media (max-width: 460px) {
+            .vasen-ylasarake .arvaus-alue {
+                width: min(100%, 310px);
+                margin-top: 0;
+            }
+
+            .kompassi-svg {
+                width: clamp(232px, 61vw, 252px);
+            }
+
+            #pisteet {
+                margin-top: -10px;
+            }
         }
     </style>
 </head>

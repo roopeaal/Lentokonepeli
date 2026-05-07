@@ -1,4 +1,4 @@
-<svg viewBox="0 0 900 880" xmlns="http://www.w3.org/2000/svg" aria-label="Antiikkinen kompassi suomenkielisillä ilmansuunnilla" role="img">
+<svg viewBox="0 0 900 880" xmlns="http://www.w3.org/2000/svg" aria-label="Antiikkinen kompassi suomenkielisillä ilmansuunnilla" role="img" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <defs>
     <radialGradient id="brassOuter" cx="35%" cy="30%" r="80%">
       <stop offset="0%" stop-color="#b88a46" />
