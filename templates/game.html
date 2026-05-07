@@ -598,6 +598,12 @@
                     <label for="pelaajan_maa">Arvaa maa kirjoittamalla tai painamalla maata kartasta:</label>
                     <div class="arvaus-rivi">
                         <input type="text" id="pelaajan_maa" name="pelaajan_maa" required {% if kierros_voitettu %}disabled{% endif %}>
+                        <input type="hidden" id="kartta_maa_nimi" name="kartta_maa_nimi">
+                        <input type="hidden" id="kartta_maa_naytto" name="kartta_maa_naytto">
+                        <input type="hidden" id="kartta_maa_iso" name="kartta_maa_iso">
+                        <input type="hidden" id="kartta_maa_tunniste" name="kartta_maa_tunniste">
+                        <input type="hidden" id="kartta_maa_lat" name="kartta_maa_lat">
+                        <input type="hidden" id="kartta_maa_lng" name="kartta_maa_lng">
                     </div>
                     {% if kierros_voitettu %}
                         <button type="button" id="uusi-peli-arvaus-btn">Aloita uusi peli</button>
@@ -675,7 +681,9 @@
             );
             var arvatutMaat = {{ arvatut_maat|default([], true)|tojson }};
             var isoMaaNimiMap = {{ iso_maa_nimi_map|default({}, true)|tojson }};
+            var isoMaaSuomiNimiMap = {{ iso_maa_suomi_nimi_map|default({}, true)|tojson }};
             var maaNimiMap = {{ maa_nimi_map|default({}, true)|tojson }};
+            var maaSuomiNimiMap = {{ maa_suomi_nimi_map|default({}, true)|tojson }};
             var karttaAliasit = {{ kartta_aliasit|default({}, true)|tojson }};
             var sallitutMaat = new Set(
                 ({{ sallitut_iso_koodit|default([], true)|tojson }} || []).map(function (koodi) {
@@ -685,10 +693,26 @@
             var kierrosVoitettu = {{ kierros_voitettu|default(false, true)|tojson }};
             var oikeaMaaIso = "{{ oikea_maa_iso|default('', true) }}".toUpperCase();
             var valittuMaaIso = null;
+            var valittuMaaTunniste = null;
             var maatLayer = null;
             var arvausKentta = document.getElementById("pelaajan_maa");
             var arvausLabel = document.querySelector('label[for="pelaajan_maa"]');
             var arvausAlue = document.querySelector('.arvaus-alue');
+            var karttaMaaNimiKentta = document.getElementById('kartta_maa_nimi');
+            var karttaMaaNayttoKentta = document.getElementById('kartta_maa_naytto');
+            var karttaMaaIsoKentta = document.getElementById('kartta_maa_iso');
+            var karttaMaaTunnisteKentta = document.getElementById('kartta_maa_tunniste');
+            var karttaMaaLatKentta = document.getElementById('kartta_maa_lat');
+            var karttaMaaLngKentta = document.getElementById('kartta_maa_lng');
+            var viimeksiKlikattuMaaNorm = '';
+            var suomiAlueNaytto = null;
+            if (window.Intl && typeof Intl.DisplayNames === 'function') {
+                try {
+                    suomiAlueNaytto = new Intl.DisplayNames(['fi'], { type: 'region' });
+                } catch (e) {
+                    suomiAlueNaytto = null;
+                }
+            }
             var GEOJSON_URL = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
             var GEOJSON_CACHE_KEY = 'lentokonepeli_geo_countries_v1';
             var GEOJSON_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -901,6 +925,41 @@
 
             var normalisoituMaaIsoMap = rakennaNormalisoituMaaIsoMap();
 
+            function haeFeatureNimi(props) {
+                props = props || {};
+                return String(props.name || props.NAME || props.ADMIN || props.NAME_LONG || '').trim();
+            }
+
+            function haeSuomenkielinenMaaNimi(nimi, isoKoodi) {
+                var iso = String(isoKoodi || '').toUpperCase();
+                if (iso && isoMaaSuomiNimiMap[iso]) {
+                    return isoMaaSuomiNimiMap[iso];
+                }
+                if (/^[A-Z]{2}$/.test(iso) && suomiAlueNaytto) {
+                    try {
+                        var alueNimi = suomiAlueNaytto.of(iso);
+                        if (alueNimi && alueNimi !== iso) {
+                            return alueNimi.charAt(0).toUpperCase() + alueNimi.slice(1);
+                        }
+                    } catch (e) {
+                        // Jos selain ei tunne koodia, jatketaan omiin nimikarttoihin.
+                    }
+                }
+
+                var nimiNorm = normalisoiMaaSyote(nimi);
+                if (nimiNorm && maaSuomiNimiMap[nimiNorm]) {
+                    return maaSuomiNimiMap[nimiNorm];
+                }
+
+                var korjattuNimi = maaNimiMap[nimiNorm];
+                var korjattuNorm = normalisoiMaaSyote(korjattuNimi);
+                if (korjattuNorm && maaSuomiNimiMap[korjattuNorm]) {
+                    return maaSuomiNimiMap[korjattuNorm];
+                }
+
+                return nimi || '';
+            }
+
             function haeFeatureIsoKoodi(props) {
                 props = props || {};
                 var suoraIso = String(props['ISO3166-1-Alpha-2'] || '').toUpperCase();
@@ -930,6 +989,30 @@
                 }
 
                 return suoraIso || '';
+            }
+
+            function haeFeatureTunniste(props) {
+                var isoKoodi = haeFeatureIsoKoodi(props);
+                if (isoKoodi && sallitutMaat.has(isoKoodi)) {
+                    return isoKoodi;
+                }
+
+                var nimiNorm = normalisoiMaaSyote(haeFeatureNimi(props));
+                return nimiNorm ? ('MAP_' + nimiNorm.toUpperCase().slice(0, 48)) : '';
+            }
+
+            function tyhjennaKarttaPiiloarvot() {
+                viimeksiKlikattuMaaNorm = '';
+                [
+                    karttaMaaNimiKentta,
+                    karttaMaaNayttoKentta,
+                    karttaMaaIsoKentta,
+                    karttaMaaTunnisteKentta,
+                    karttaMaaLatKentta,
+                    karttaMaaLngKentta
+                ].forEach(function (kentta) {
+                    if (kentta) kentta.value = '';
+                });
             }
 
             // Lisää taustakartta ilman tekstejä (no labels), vaaleansinisellä merellä
@@ -974,6 +1057,13 @@
             if (arvausForm) {
                 arvausForm.addEventListener('submit', tallennaKarttaNakyma);
             }
+            if (arvausKentta) {
+                arvausKentta.addEventListener('input', function () {
+                    if (viimeksiKlikattuMaaNorm && normalisoiMaaSyote(arvausKentta.value) !== viimeksiKlikattuMaaNorm) {
+                        tyhjennaKarttaPiiloarvot();
+                    }
+                });
+            }
 
             function haeRajaPaksuus(perusPaksuus) {
                 var zoom = kartta.getZoom();
@@ -986,9 +1076,10 @@
             function haeMaanTyyli(feature) {
                 var props = feature.properties || {};
                 var isoKoodi = haeFeatureIsoKoodi(props);
-                var onSallittu = sallitutMaat.has(isoKoodi);
-                var onValittu = valittuMaaIso && valittuMaaIso === isoKoodi;
-                var onArvattu = arvatutMaat.includes(isoKoodi);
+                var tunniste = haeFeatureTunniste(props);
+                var onSallittu = Boolean(tunniste);
+                var onValittu = valittuMaaTunniste && valittuMaaTunniste === tunniste;
+                var onArvattu = arvatutMaat.includes(tunniste);
                 var onOikea = oikeaMaaIso && oikeaMaaIso === isoKoodi;
 
                 if (!onSallittu) {
@@ -1112,12 +1203,14 @@
                             onEachFeature: function (feature, layer) {
                                 var props = feature.properties || {};
                                 var isoKoodi = haeFeatureIsoKoodi(props);
-                                if (!sallitutMaat.has(isoKoodi)) {
+                                var tunniste = haeFeatureTunniste(props);
+                                var maanNimi = haeFeatureNimi(props);
+                                if (!tunniste || !maanNimi) {
                                     return;
                                 }
                                 layer.on('click', function () {
                                     valittuMaaIso = haeFeatureIsoKoodi(props) || null;
-                                    var maanNimi = (props.name || '').trim();
+                                    valittuMaaTunniste = haeFeatureTunniste(props) || null;
                                     var korjattuNimi = isoMaaNimiMap[valittuMaaIso] || null;
                                     var normalisoituNimi = normalisoiMaaSyote(maanNimi);
                                     if (!korjattuNimi) {
@@ -1129,9 +1222,19 @@
                                             korjattuNimi = maaNimiMap[aliasKohde] || aliasKohde;
                                         }
                                     }
-                                    var naytettavaNimi = korjattuNimi || maanNimi;
+                                    var naytettavaNimi = haeSuomenkielinenMaaNimi(korjattuNimi || maanNimi, valittuMaaIso);
+                                    var keskikohta = layer.getBounds ? layer.getBounds().getCenter() : null;
                                     if (naytettavaNimi && arvausKentta && !kierrosVoitettu) {
                                         arvausKentta.value = naytettavaNimi;
+                                        viimeksiKlikattuMaaNorm = normalisoiMaaSyote(naytettavaNimi);
+                                        if (karttaMaaNimiKentta) karttaMaaNimiKentta.value = korjattuNimi || maanNimi;
+                                        if (karttaMaaNayttoKentta) karttaMaaNayttoKentta.value = naytettavaNimi;
+                                        if (karttaMaaIsoKentta) karttaMaaIsoKentta.value = valittuMaaIso || '';
+                                        if (karttaMaaTunnisteKentta) karttaMaaTunnisteKentta.value = valittuMaaTunniste || '';
+                                        if (keskikohta && Number.isFinite(keskikohta.lat) && Number.isFinite(keskikohta.lng)) {
+                                            if (karttaMaaLatKentta) karttaMaaLatKentta.value = keskikohta.lat.toFixed(6);
+                                            if (karttaMaaLngKentta) karttaMaaLngKentta.value = keskikohta.lng.toFixed(6);
+                                        }
                                         arvausKentta.focus();
                                     }
                                     paivitaMaatTyylit();

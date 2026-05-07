@@ -44,6 +44,8 @@ SUOMENKIELISET_MAA_ALIAKSET = {
     "Amerikan Samoa": "American Samoa",
     "Andorra": "Andorra",
     "Angola": "Angola",
+    "Albania": "Albania",
+    "Antarktis": "Antarctica",
     "Antigua ja Barbuda": "Antigua and Barbuda",
     "Arabiemiirikunnat": "United Arab Emirates",
     "Yhdistyneet arabiemiirikunnat": "United Arab Emirates",
@@ -261,6 +263,7 @@ SUOMENKIELISET_MAA_ALIAKSET = {
     "Turkmenistan": "Turkmenistan",
     "Turkki": "Turkey",
     "Turks- ja Caicossaaret": "Turks and Caicos Islands",
+    "Uganda": "Uganda",
     "Ukraina": "Ukraine",
     "Unkari": "Hungary",
     "Uruguay": "Uruguay",
@@ -277,6 +280,7 @@ SUOMENKIELISET_MAA_ALIAKSET = {
     "Yhdistynyt kuningaskunta": "United Kingdom",
     "Yhdysvallat": "United States",
     "Yhdysvaltain Neitsytsaaret": "United States Virgin Islands",
+    "Zimbabwe": "Zimbabwe",
 }
 
 YLEISET_MAA_ALIAKSET.update(SUOMENKIELISET_MAA_ALIAKSET)
@@ -998,6 +1002,41 @@ def _maa_aliasit_norm_map():
             alias_map[alias_avain] = kohde_avain
     return alias_map
 
+
+def _suomenkieliset_maa_nimet_norm_map():
+    suomi_map = {}
+    # Dictin jarjestys antaa ensisijaiseksi ensimmaisen luonnollisen suomenkielisen nimen.
+    for suomi_nimi, englanti_nimi in SUOMENKIELISET_MAA_ALIAKSET.items():
+        englanti_avain = _normalisoi_maa_syote(englanti_nimi)
+        suomi_nimi = (suomi_nimi or "").strip()
+        if englanti_avain and suomi_nimi and englanti_avain not in suomi_map:
+            suomi_map[englanti_avain] = suomi_nimi
+    return suomi_map
+
+
+def _suomenkielinen_maa_nimi(englanti_nimi):
+    nimi = (englanti_nimi or "").strip()
+    if not nimi:
+        return ""
+    return _suomenkieliset_maa_nimet_norm_map().get(_normalisoi_maa_syote(nimi), nimi)
+
+
+def _puhdista_maatunniste(arvo):
+    tunniste = "".join(
+        merkki for merkki in (arvo or "").upper().strip()
+        if merkki.isalnum() or merkki in ("_", "-")
+    )
+    return tunniste[:64]
+
+
+def _lomake_float(arvo):
+    try:
+        numero = float(arvo)
+    except (TypeError, ValueError):
+        return None
+    return numero if math.isfinite(numero) else None
+
+
 def _ehdotuksen_minimiraja(pituus):
     if pituus <= 4:
         return 0.85
@@ -1156,9 +1195,12 @@ def hae_maiden_konteksti():
 
     sallitut_iso_koodit = []
     iso_maa_nimi_map = {}
+    iso_maa_suomi_nimi_map = {}
     maa_nimi_map = {}
+    maa_suomi_nimi_map = {}
     maa_tiedot_norm_map = {}
     maat_nimet = []
+    suomi_nimi_map = _suomenkieliset_maa_nimet_norm_map()
 
     for row in rows:
         if not row:
@@ -1172,27 +1214,35 @@ def hae_maiden_konteksti():
         if not nimi:
             continue
 
+        suomi_nimi = suomi_nimi_map.get(_normalisoi_maa_syote(nimi), nimi)
         maat_nimet.append(nimi)
+        if suomi_nimi != nimi:
+            maat_nimet.append(suomi_nimi)
         norm = _normalisoi_maa_syote(nimi)
         if norm:
             maa_nimi_map[norm] = nimi
+            maa_suomi_nimi_map[norm] = suomi_nimi
             if lat is not None and lng is not None:
                 maa_tiedot_norm_map[norm] = {
                     'name': nimi,
+                    'display_name': suomi_nimi,
                     'iso_country': iso_raaka,
                     'latitude': float(lat),
                     'longitude': float(lng),
+                    'tunniste': iso_raaka if len(iso_raaka) == 2 and iso_raaka.isalpha() else '',
                 }
 
         if len(iso_raaka) == 2 and iso_raaka.isalpha():
             sallitut_iso_koodit.append(iso_raaka)
             iso_maa_nimi_map[iso_raaka] = nimi
+            iso_maa_suomi_nimi_map[iso_raaka] = suomi_nimi
 
     for alias_avain, kohde_avain in _maa_aliasit_norm_map().items():
         kohde_nimi = maa_nimi_map.get(kohde_avain)
         if not kohde_nimi:
             continue
         maa_nimi_map[alias_avain] = kohde_nimi
+        maa_suomi_nimi_map[alias_avain] = maa_suomi_nimi_map.get(kohde_avain, _suomenkielinen_maa_nimi(kohde_nimi))
         kohde_tiedot = maa_tiedot_norm_map.get(kohde_avain)
         if kohde_tiedot:
             maa_tiedot_norm_map[alias_avain] = kohde_tiedot
@@ -1200,18 +1250,20 @@ def hae_maiden_konteksti():
     return {
         'sallitut_iso_koodit': sorted(set(sallitut_iso_koodit)),
         'iso_maa_nimi_map': iso_maa_nimi_map,
+        'iso_maa_suomi_nimi_map': iso_maa_suomi_nimi_map,
         'maa_nimi_map': maa_nimi_map,
+        'maa_suomi_nimi_map': maa_suomi_nimi_map,
         'maa_tiedot_norm_map': maa_tiedot_norm_map,
-        'maat_nimet': maat_nimet,
+        'maat_nimet': sorted(set(maat_nimet)),
     }
 
 def _hae_arvatut_maat_cookie():
     arvatut_maat_raaka = request.cookies.get('arvatut_maat', '')
     arvatut_maat = []
     for arvo in arvatut_maat_raaka.split(','):
-        koodi = arvo.strip().upper()
-        if len(koodi) == 2 and koodi.isalpha() and koodi not in arvatut_maat:
-            arvatut_maat.append(koodi)
+        tunniste = _puhdista_maatunniste(arvo)
+        if 2 <= len(tunniste) <= 64 and tunniste not in arvatut_maat:
+            arvatut_maat.append(tunniste)
     return arvatut_maat
 
 
@@ -1232,6 +1284,59 @@ def _hae_arvottavat_iso_koodit(sallitut_iso_koodit=None):
         klikattavat = [koodi for koodi in klikattavat if koodi in sallitut_set]
     return klikattavat if klikattavat else None
 
+
+def _hae_kartta_arvaus_lomakkeesta(syote_norm, maa_nimi_map, maa_suomi_nimi_map):
+    kartta_nimi = (request.form.get('kartta_maa_nimi') or '').strip()
+    kartta_naytto = (request.form.get('kartta_maa_naytto') or '').strip()
+    kartta_iso = (request.form.get('kartta_maa_iso') or '').strip().upper()
+    kartta_tunniste = _puhdista_maatunniste(request.form.get('kartta_maa_tunniste'))
+    lat = _lomake_float(request.form.get('kartta_maa_lat'))
+    lng = _lomake_float(request.form.get('kartta_maa_lng'))
+
+    if lat is None or lng is None or lat < -90 or lat > 90 or lng < -180 or lng > 180:
+        return None
+
+    kartta_nimi_norm = _normalisoi_maa_syote(kartta_nimi)
+    kartta_naytto_norm = _normalisoi_maa_syote(kartta_naytto)
+    if not kartta_nimi_norm and not kartta_naytto_norm:
+        return None
+
+    tunnettu_nimi = maa_nimi_map.get(kartta_nimi_norm) or maa_nimi_map.get(kartta_naytto_norm)
+    englanti_nimi = tunnettu_nimi or kartta_nimi or kartta_naytto
+    suomi_nimi = (
+        maa_suomi_nimi_map.get(_normalisoi_maa_syote(englanti_nimi))
+        or maa_suomi_nimi_map.get(kartta_nimi_norm)
+        or maa_suomi_nimi_map.get(kartta_naytto_norm)
+        or kartta_naytto
+        or _suomenkielinen_maa_nimi(englanti_nimi)
+    )
+
+    sallitut_syotteet = {
+        _normalisoi_maa_syote(englanti_nimi),
+        _normalisoi_maa_syote(suomi_nimi),
+        kartta_nimi_norm,
+        kartta_naytto_norm,
+    }
+    sallitut_syotteet.discard('')
+    if syote_norm not in sallitut_syotteet:
+        return None
+
+    if not kartta_tunniste:
+        if len(kartta_iso) == 2 and kartta_iso.isalpha():
+            kartta_tunniste = kartta_iso
+        else:
+            kartta_tunniste = "MAP_" + _normalisoi_maa_syote(englanti_nimi).upper()[:48]
+
+    return {
+        'name': englanti_nimi,
+        'display_name': suomi_nimi,
+        'iso_country': kartta_iso if len(kartta_iso) == 2 and kartta_iso.isalpha() else '',
+        'latitude': lat,
+        'longitude': lng,
+        'tunniste': kartta_tunniste,
+    }
+
+
 def _tallenna_arvatut_maat_cookie(response, arvatut_maat):
     if arvatut_maat:
         response.set_cookie('arvatut_maat', ",".join(arvatut_maat))
@@ -1247,7 +1352,9 @@ def game():
     maiden_konteksti = hae_maiden_konteksti()
     sallitut_iso_koodit = maiden_konteksti['sallitut_iso_koodit']
     iso_maa_nimi_map = maiden_konteksti['iso_maa_nimi_map']
+    iso_maa_suomi_nimi_map = maiden_konteksti['iso_maa_suomi_nimi_map']
     maa_nimi_map = maiden_konteksti['maa_nimi_map']
+    maa_suomi_nimi_map = maiden_konteksti['maa_suomi_nimi_map']
     maa_tiedot_norm_map = maiden_konteksti['maa_tiedot_norm_map']
     maat_nimet = maiden_konteksti['maat_nimet']
     kartta_aliasit = hae_kartta_aliasit()
@@ -1287,7 +1394,9 @@ def game():
                 arvatut_maat=arvatut_maat,
                 sallitut_iso_koodit=sallitut_iso_koodit,
                 iso_maa_nimi_map=iso_maa_nimi_map,
+                iso_maa_suomi_nimi_map=iso_maa_suomi_nimi_map,
                 maa_nimi_map=maa_nimi_map,
+                maa_suomi_nimi_map=maa_suomi_nimi_map,
                 kartta_aliasit=kartta_aliasit,
                 kierros_voitettu=False,
                 oikea_maa_iso=oikea_maa_iso,
@@ -1308,7 +1417,9 @@ def game():
             arvatut_maat=[],
             sallitut_iso_koodit=sallitut_iso_koodit,
             iso_maa_nimi_map=iso_maa_nimi_map,
+            iso_maa_suomi_nimi_map=iso_maa_suomi_nimi_map,
             maa_nimi_map=maa_nimi_map,
+            maa_suomi_nimi_map=maa_suomi_nimi_map,
             kartta_aliasit=kartta_aliasit,
             kierros_voitettu=False,
             oikea_maa_iso=None,
@@ -1335,14 +1446,18 @@ def game():
         if pelaajan_maa_syote:
             syote_norm = _normalisoi_maa_syote(pelaajan_maa_syote)
             maan_tiedot = maa_tiedot_norm_map.get(syote_norm)
+            if not maan_tiedot:
+                maan_tiedot = _hae_kartta_arvaus_lomakkeesta(syote_norm, maa_nimi_map, maa_suomi_nimi_map)
             if maan_tiedot:
                 pelaajan_maa = maan_tiedot['name']
+                pelaajan_maa_naytto = maan_tiedot.get('display_name') or _suomenkielinen_maa_nimi(pelaajan_maa)
                 pelaajan_maa_koord = (maan_tiedot['latitude'], maan_tiedot['longitude'])
                 pisteet = 0
                 maan_iso_koodi = (maan_tiedot['iso_country'] or "").upper()
-                onko_jo_arvattu = bool(maan_iso_koodi and maan_iso_koodi in arvatut_maat)
-                if maan_iso_koodi and not onko_jo_arvattu:
-                    arvatut_maat.append(maan_iso_koodi)
+                maan_tunniste = _puhdista_maatunniste(maan_tiedot.get('tunniste') or maan_iso_koodi)
+                onko_jo_arvattu = bool(maan_tunniste and maan_tunniste in arvatut_maat)
+                if maan_tunniste and not onko_jo_arvattu:
+                    arvatut_maat.append(maan_tunniste)
                 arvottu_latitude = float(arvottu_latitude)
                 arvottu_longitude = float(arvottu_longitude)
                 etaisyys, ilmansuunta = laske_etaisyys_ja_ilmansuunta(
@@ -1352,12 +1467,13 @@ def game():
 
                 if onko_jo_arvattu:
                     result_category = 'info'
-                    tulos = f'Olet jo arvannut jo maata "{pelaajan_maa}". Kolumbus on {etaisyys} km päässä {ilmansuunta}.'
+                    tulos = f'Olet jo arvannut jo maata "{pelaajan_maa_naytto}". Kolumbus on {etaisyys} km päässä {ilmansuunta}.'
                 elif _normalisoi_maa_syote(pelaajan_maa) == _normalisoi_maa_syote(arvottu_maa):
                     pisteet = 0
                     lisaa_pisteet(username, user_points)
+                    arvottu_maa_naytto = _suomenkielinen_maa_nimi(arvottu_maa)
                     tulos = (
-                        f'Arvasit oikein! Oikea maa on: {arvottu_maa}. Keräsit {user_points} pistettä! '
+                        f'Arvasit oikein! Oikea maa on: {arvottu_maa_naytto}. Keräsit {user_points} pistettä! '
                         'Aloita uusi peli "Aloita uusi peli" napista.'
                     )
                     paivita_hiscore(username, user_points)
@@ -1370,7 +1486,7 @@ def game():
                     lisaa_pisteet(username, uusi_pistemaara)
                     user_points = uusi_pistemaara
                     result_category = 'info'
-                    tulos = f'Arvauksesi "{pelaajan_maa}" on väärin. Kolumbus on {etaisyys} km päässä {ilmansuunta}.'
+                    tulos = f'Arvauksesi "{pelaajan_maa_naytto}" on väärin. Kolumbus on {etaisyys} km päässä {ilmansuunta}.'
 
                 kierros_voitettu = bool(oikea_maa_iso and oikea_maa_iso in arvatut_maat)
 
@@ -1388,7 +1504,9 @@ def game():
                         arvatut_maat=arvatut_maat,
                         sallitut_iso_koodit=sallitut_iso_koodit,
                         iso_maa_nimi_map=iso_maa_nimi_map,
+                        iso_maa_suomi_nimi_map=iso_maa_suomi_nimi_map,
                         maa_nimi_map=maa_nimi_map,
+                        maa_suomi_nimi_map=maa_suomi_nimi_map,
                         kartta_aliasit=kartta_aliasit,
                         kierros_voitettu=kierros_voitettu,
                         oikea_maa_iso=oikea_maa_iso,
@@ -1421,7 +1539,9 @@ def game():
         arvatut_maat=arvatut_maat,
         sallitut_iso_koodit=sallitut_iso_koodit,
         iso_maa_nimi_map=iso_maa_nimi_map,
+        iso_maa_suomi_nimi_map=iso_maa_suomi_nimi_map,
         maa_nimi_map=maa_nimi_map,
+        maa_suomi_nimi_map=maa_suomi_nimi_map,
         kartta_aliasit=kartta_aliasit,
         kierros_voitettu=kierros_voitettu,
         oikea_maa_iso=oikea_maa_iso,
